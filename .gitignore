@@ -1,0 +1,51 @@
+# Build output
+_build/
+dist/
+__pycache__/
+*.pyc
+*.o
+*.obj
+*.spec
+
+# Made from the game's own files by tools/build_data.py: never commit them
+data/scripts/
+data/lua/
+data/nation_flags/
+
+# Never commit game files or anything copied from them
+*.exe
+*.dll
+*.asi
+*.cpr
+*.pr2
+*.screen
+*.res
+*.tow
+*.rest
+*.aim
+*.let
+*.lcr
+*.3do
+*.cla
+*.tga
+*.bmp
+*.raw
+*.col
+*.cdb
+*.gdb
+*.bin
+*.dat
+*.wmv
+*.patches
+_workdir/
+original/
+game/
+saves/
+screenshots/
+
+# Logs, dev switches and console files of test runs
+*.log
+*.dev
+PR2Nation.ini
+PR2Nation.cmd
+_backup/

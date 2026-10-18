@@ -1,0 +1,7 @@
+* text=auto
+*.png binary
+*.jpg binary
+# the game reads include.ini with Windows line ends; tools/build_data.py writes them either way
+lua/include_body.ini text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
