@@ -4,7 +4,7 @@ The report (a player's report, build 4a14899e) said the game froze right after a
 response and 0 CPU, with 8 national fleets and an English war fleet at sea. This note covers what
 the log shows, what was run to reproduce it, and what changed.
 
-Static facts are from `PR2_target.exe` (capstone, the private fact checker QT-*). Runtime results are
+Static facts are from `PR2_target.exe` (capstone, `tools/check_facts.py` QT-*). Runtime results are
 from a private probe in the test install.
 
 ## 1. What the reporter's log says

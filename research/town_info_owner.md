@@ -2,7 +2,7 @@
 
 Static RE of `PR2_target.exe` (= the pinned `PR2.exe.unpacked.exe`, ImageBase 0x400000) with capstone; in-game check
 with a private probe on the reporter's save (<the player's nation>). Facts `TI-*` in
-the private fact checker. Labels: [S] bytes read, [R] seen in game, [H] hypothesis.
+`tools/check_facts.py`. Labels: [S] bytes read, [R] seen in game, [H] hypothesis.
 
 ## 0. Answer
 

@@ -14,7 +14,7 @@ Labels:
 
 ## 0. Answer in one paragraph
 
-All 109 references are bounded, as the private fact checker N0-guards says. But "bounded" only
+All 109 references are bounded, as `tools/check_facts.py` N0-guards says. But "bounded" only
 means `n>=4 -> p = 0`.
 
 **60 of the 100 guarded sites then use `p` with no null test.**
@@ -187,7 +187,7 @@ So `[esp+0x1c]` is the argument slot, reused as a "good is 16..18" flag, and `cl
 
 ## 5. Patch estimate (task 4)
 
-> **Superseded by `patches/p05_nation5_town_safety.py`** (sites `0x5C86A5`, `0x5B41B0`, `0x5B41DA`, `0x5B42EB`, `0x5B438D`, `0x5BC49E`, `0x5BC59D`, `0x5BC5D1`, `0x5E75C7`, `0x5BC100`); see its docstring. The detours proposed below at `0x5C86AC` and `0x5BC476` were not used as written. Original bytes at every P05 site are pinned as `P5-*` facts in the private fact checker.
+> **Superseded by `patches/p05_nation5_town_safety.py`** (sites `0x5C86A5`, `0x5B41B0`, `0x5B41DA`, `0x5B42EB`, `0x5B438D`, `0x5BC49E`, `0x5BC59D`, `0x5BC5D1`, `0x5E75C7`, `0x5BC100`); see its docstring. The detours proposed below at `0x5C86AC` and `0x5BC476` were not used as written. Original bytes at every P05 site are pinned as `P5-*` facts in `tools/check_facts.py`.
 
 **Option C, nation byte 5 with no CNation.** The minimum to cover every TOWN-indexed site is
 **4 detours**, on top of P01:

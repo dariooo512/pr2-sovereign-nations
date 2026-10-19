@@ -3,7 +3,7 @@
 Where vanilla keeps the player's building permit, who grants it, who checks it, and how
 PR2Nation gives it to the player in every town of the nation
 (the automatic building permit change). PR2.exe 1.1.2.3, unpacked
-(`PR2_target.exe`, sha 9c9250bc...). Byte facts: the private fact checker `BP-*`.
+(`PR2_target.exe`, sha 9c9250bc...). Byte facts: `tools/check_facts.py` `BP-*`.
 
 ## 1. Storage: one licence record per town
 

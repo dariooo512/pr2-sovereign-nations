@@ -1,5 +1,5 @@
 /* Verified game addresses for PR2.exe 1.1.2.3 unpacked (base sha 9c9250bc...).
- * Sources: research/ notes; byte facts in the private fact checker.
+ * Sources: research/ notes; byte facts in tools/check_facts.py.
  */
 #ifndef PR2N_GAME_H
 #define PR2N_GAME_H

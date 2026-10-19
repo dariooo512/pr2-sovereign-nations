@@ -93,7 +93,7 @@ def town(name):
 
 
 def static():
-    if (HERE / "check_facts.py").exists():           # the fact checker is not in the public repository
+    if (HERE / "check_facts.py").exists():           # exports before 20 Oct 2026 left it out
         code, tail = run(HERE / "check_facts.py")
         record("FACTS", code == 0, tail[0])
     else:

@@ -214,7 +214,7 @@ Per-nation art that exists (all keyed by the display/host nation, 4 sets only):
 ## 8. Two flags: the player's logo and the nation's flag (the two-flags change, 2026-10-18)
 
 Static RE of `PR2_target.exe` (same SHA-256 as the pinned unpacked exe) and `WalExtPR2.dll`; facts `FL-*` in
-the private fact checker; code in `dll/flag.c`; in-game check `tools/flag_probe.py`.
+`tools/check_facts.py`; code in `dll/flag.c`; in-game check `tools/flag_probe.py`.
 
 ### 8.1 Why the flags were mixed up [S]
 * Design 5.1 made the nation's flag the player logo: founding copied `flag_NNN.bmp` over `Run\0.bmp`.

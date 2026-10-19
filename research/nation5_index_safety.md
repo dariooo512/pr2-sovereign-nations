@@ -238,7 +238,7 @@ Each of these is a one-byte patch.
 ## Facts ready for the fact checker (all verified PASS)
 
 Format: `(id, va, [instructions])`. Each instruction string is
-`f"{mnemonic} {op_str}".strip()`, the same as in the private fact checker. So a bare `ret` is `"ret"`
+`f"{mnemonic} {op_str}".strip()`, the same as in `tools/check_facts.py`. So a bare `ret` is `"ret"`
 and `cdq` is `"cdq"`.
 
 ```python

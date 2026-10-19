@@ -63,4 +63,4 @@ checks capital, a conquered, a bought and a petitioned town at reputation 0 with
 same after QuickSave + cold reload. Result [R] 2026-10-17: 33/33. Margarita, Coro, Caracas (bought) and Puerto
 Cabello (petition) at reputation 0 with Spain: treasurer states 5/2 (offer / low value), commander 4, building
 master 3/4 (never 1/2), while the vanilla tier with the NPC's nation (Spain) is 0; Maracaibo (Spanish) refuses
-with state 1 for all three; identical after the reload. Fact checks OF-* in the private fact checker.
+with state 1 for all three; identical after the reload. Fact checks OF-* in `tools/check_facts.py`.

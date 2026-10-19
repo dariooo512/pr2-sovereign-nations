@@ -338,7 +338,7 @@ the fleet neither repairs nor re-arms during the task. **Never use nation 5 or 6
 The raid recipe above only works for a fleet **at sea**. Until v2026.10.17 the DLL gave the Circle
 task to *docked* fleets (`send_raids` picked `+0x90 == 2` only). Such a fleet never left port.
 
-**Why** [S, the private fact checker NV-*]:
+**Why** [S, `tools/check_facts.py` NV-*]:
 - State 2 (docked) ticks the harbour timer `+0x198` and then calls the harbour AI `0x5B53C0`
   (`0x5B5D7D`).
 - The harbour AI checks the task first (`0x5B53CF call 0x5ADA80` = expiry, then
