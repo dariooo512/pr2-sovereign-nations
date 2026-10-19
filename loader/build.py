@@ -9,17 +9,18 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "tools"))
-from sn_paths import MINGW32_BIN as GCC_BIN  # noqa: E402  (setting MINGW32_BIN)
+from sn_paths import gcc  # noqa: E402  (setting MINGW32_BIN)
 
 OUT = HERE.parent / "_build" / "loader" / "version.dll"
 
 
 def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [str(GCC_BIN / "gcc.exe"), "-m32", "-std=gnu11", "-O2", "-Wall", "-Wextra", "-shared", "-static",
+    gcc_exe = gcc()
+    cmd = [str(gcc_exe), "-m32", "-std=gnu11", "-O2", "-Wall", "-Wextra", "-shared", "-static",
            "-static-libgcc", "-o", str(OUT), str(HERE / "loader.c"), str(HERE / "sha256.c"), str(HERE / "version.def"),
            "-Wl,--enable-stdcall-fixup"]
-    env = dict(os.environ, PATH=str(GCC_BIN) + os.pathsep + os.environ["PATH"])
+    env = dict(os.environ, PATH=str(gcc_exe.parent) + os.pathsep + os.environ["PATH"])
     r = subprocess.run(cmd, env=env, capture_output=True, text=True)
     sys.stdout.write(r.stdout + r.stderr)
     if r.returncode == 0:

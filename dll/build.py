@@ -9,7 +9,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "tools"))
-from sn_paths import MINGW32_BIN as GCC_BIN  # noqa: E402  (setting MINGW32_BIN)
+from sn_paths import gcc  # noqa: E402  (setting MINGW32_BIN)
 
 OUT = HERE.parent / "_build" / "dll" / "PR2Nation.dll"
 
@@ -17,10 +17,11 @@ OUT = HERE.parent / "_build" / "dll" / "PR2Nation.dll"
 def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     srcs = sorted(str(p) for p in HERE.glob("*.c"))
-    cmd = [str(GCC_BIN / "gcc.exe"), "-m32", "-std=gnu11", "-O2", "-Wall", "-Wextra",
+    gcc_exe = gcc()
+    cmd = [str(gcc_exe), "-m32", "-std=gnu11", "-O2", "-Wall", "-Wextra",
            "-Wno-unused-parameter", "-shared", "-static", "-static-libgcc",
            "-o", str(OUT), *srcs, "-Wl,--enable-stdcall-fixup", "-luser32", "-lole32"]
-    env = dict(os.environ, PATH=str(GCC_BIN) + os.pathsep + os.environ["PATH"])
+    env = dict(os.environ, PATH=str(gcc_exe.parent) + os.pathsep + os.environ["PATH"])
     r = subprocess.run(cmd, env=env, capture_output=True, text=True)
     sys.stdout.write(r.stdout + r.stderr)
     if r.returncode == 0:

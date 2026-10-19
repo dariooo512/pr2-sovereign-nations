@@ -172,10 +172,11 @@ def restore_run(backup):
 def windowed(on):
     cfg = SAVE_DIR / "settings.cfg"
     orig = BACKUPS / "settings.cfg.orig"
-    if not orig.exists():
+    text = cfg.read_text()
+    if not orig.exists() or "FULLSCREEN : 0" not in text:   # an orig from an older run would undo later changes
         BACKUPS.mkdir(parents=True, exist_ok=True)
         shutil.copy2(cfg, orig)
-    lines = cfg.read_text().splitlines()
+    lines = text.splitlines()
     lines = [f"FULLSCREEN : {0 if on else 1}" if l.startswith("FULLSCREEN") else l for l in lines]
     cfg.write_text("\n".join(lines) + "\n")
     print(f"{cfg}: FULLSCREEN = {0 if on else 1}")

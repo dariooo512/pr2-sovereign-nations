@@ -93,8 +93,11 @@ def town(name):
 
 
 def static():
-    code, tail = run(HERE / "check_facts.py")
-    record("FACTS", code == 0, tail[0])
+    if (HERE / "check_facts.py").exists():           # the fact checker is not in the public repository
+        code, tail = run(HERE / "check_facts.py")
+        record("FACTS", code == 0, tail[0])
+    else:
+        print("SKIP  FACTS    tools/check_facts.py is not in this checkout")
     for t in sorted(HERE.glob("test_*.py")):
         code, tail = run(t)
         record(t.stem, code == 0, tail[0])

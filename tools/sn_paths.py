@@ -16,10 +16,28 @@ original-game/). In a checkout of the mod on its own, point them at your own cop
   MINGW32_BIN    the bin folder of a 32-bit MinGW-w64 GCC (default: MSYS2's C:\\msys64\\mingw32\\bin)
 """
 import os
+import shutil
+import subprocess
 from pathlib import Path
 
 MOD = Path(__file__).resolve().parents[1]          # the mod's folder
 WORKSPACE = MOD.parent                             # the folder the defaults are relative to
+
+
+def main_workspace(ws: Path) -> Path:
+    """In a git worktree the reverse-engineering folders live next to the main checkout."""
+    if (ws / "reverse-engineering").is_dir():
+        return ws
+    try:
+        common = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=MOD, capture_output=True,
+                                text=True).stdout.strip()
+    except OSError:
+        return ws
+    main = (MOD / common).resolve().parent if common else ws
+    return main if (main / "reverse-engineering").is_dir() else ws
+
+
+WORKSPACE = main_workspace(WORKSPACE)
 
 
 def setting(var: str, default: Path) -> Path:
@@ -54,3 +72,26 @@ TEST_ENV = setting("SN_TEST_ENV", Path.home() / "PR2-nation-env")
 TEST_LOCK = setting("SN_TEST_LOCK", Path.home() / "PR2-nation-env.lock")
 SAVE_DIR = setting("SN_SAVE_DIR", documents() / "Ascaron Entertainment" / "Port Royale 2" / "Save")
 MINGW32_BIN = setting("MINGW32_BIN", Path(r"C:\msys64\mingw32\bin"))
+
+
+def gcc() -> Path:
+    """A 32-bit MinGW gcc.exe: MINGW32_BIN, else gcc on PATH (which must be an i686 compiler)."""
+    if (MINGW32_BIN / "gcc.exe").exists():
+        return MINGW32_BIN / "gcc.exe"
+    g = shutil.which("gcc")
+    if g:
+        return Path(g)
+    raise SystemExit("no gcc found: install MSYS2 and run `pacman -S mingw-w64-i686-gcc`, "
+                     "or set MINGW32_BIN to the folder that holds a 32-bit gcc.exe")
+
+
+def main():
+    for var, p in [("SN_WORKDIR", WORKDIR), ("SN_BASE_EXE", BASE_EXE), ("SN_PRISTINE", PRISTINE),
+                   ("SN_TEST_ENV", TEST_ENV), ("SN_TEST_LOCK", TEST_LOCK), ("SN_SAVE_DIR", SAVE_DIR),
+                   ("MINGW32_BIN", MINGW32_BIN)]:
+        src = "env" if os.environ.get(var) else "default"
+        print(f"{var:<13} {src:<8} {'exists' if p.exists() else 'missing':<8} {p}")
+
+
+if __name__ == "__main__":
+    main()

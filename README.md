@@ -119,7 +119,15 @@ The tools find what is not part of the mod through environment variables
 | `MINGW32_BIN` | the 32-bit MinGW GCC | `C:\msys64\mingw32\bin` |
 
 The `../` defaults are the layout of the workspace the mod was made in (this repository next
-to the reverse-engineering folders); in a plain clone, set the variables.
+to the reverse-engineering folders); in a plain clone, set the variables. If you followed the
+modding kit's *docs/getting-started.md*, its `_game` folder already has everything:
+
+```
+set SN_WORKDIR=<kit>\_game\extracted
+set SN_BASE_EXE=<kit>\_game\PR2.exe.unpacked.exe
+set SN_PRISTINE=<kit>\_game\original
+python tools/sn_paths.py      # prints every setting, where it comes from and whether it exists
+```
 
 ### Testing in the game
 

@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sn_paths import BASE_EXE, MINGW32_BIN, PRISTINE, WORKDIR  # noqa: E402
+from sn_paths import BASE_EXE, PRISTINE, WORKDIR, gcc  # noqa: E402
 
 FNN = Path(__file__).resolve().parents[1]
 DLL = FNN / "dll"
@@ -37,7 +37,6 @@ A2D = PRISTINE / "A2dLib-2.20A.dll"
 LUADLL = PRISTINE / "lua.dll"
 GLOBAL_RES = WORKDIR / "arcd" / "strings" / "Original" / "global" / "global.res"
 OUT = FNN / "_build" / "check_ui"
-GCC_BIN = MINGW32_BIN
 
 fails = 0
 
@@ -545,10 +544,11 @@ def part3(tables):
     (OUT / "prelude.lua").write_text(PRELUDE_LUA, encoding="utf-8")
     (OUT / "flows.lua").write_text(FLOWS_LUA, encoding="utf-8")
     exe = OUT / "harness.exe"
-    cmd = [str(GCC_BIN / "gcc.exe"), "-m32", "-std=gnu11", "-O1", "-Wall", "-I", str(DLL),
+    gcc_exe = gcc()
+    cmd = [str(gcc_exe), "-m32", "-std=gnu11", "-O1", "-Wall", "-I", str(DLL),
            "-o", str(exe), str(OUT / "harness.c"), str(DLL / "strings.c"), str(DLL / "ui.c"),
            str(DLL / "lua.c"), str(DLL / "log.c"), "-luser32"]
-    env = dict(os.environ, PATH=str(GCC_BIN) + os.pathsep + os.environ["PATH"])
+    env = dict(os.environ, PATH=str(gcc_exe.parent) + os.pathsep + os.environ["PATH"])
     r = subprocess.run(cmd, env=env, capture_output=True, text=True)
     if not check(r.returncode == 0, "harness builds"):
         print(r.stdout + r.stderr)

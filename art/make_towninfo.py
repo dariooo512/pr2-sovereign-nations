@@ -18,12 +18,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "tools"))
 from screen_dump import Screen  # noqa: E402
 
-SCRIPTS = HERE.parents[1] / "reverse-engineering" / "_workdir" / "arcd" / "scripts"
-if not SCRIPTS.is_dir():           # a git worktree: the extracted game data lives in the main checkout
-    import subprocess
-    common = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=HERE, capture_output=True,
-                            text=True).stdout.strip()
-    SCRIPTS = (HERE / common).resolve().parent / "reverse-engineering" / "_workdir" / "arcd" / "scripts"
+from sn_paths import WORKDIR  # noqa: E402
+
+SCRIPTS = WORKDIR / "arcd" / "scripts"      # vanilla screens (setting SN_WORKDIR)
 OUT = HERE.parent / "data" / "scripts" / "FNN_TINFO_NATION_800x600.screen"
 ROOT_X, ROOT_Y = 181, 339          # frame (7,6) of the row -> dialog (188,345) = SID_Nat_03
 

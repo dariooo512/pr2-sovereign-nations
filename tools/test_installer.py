@@ -65,6 +65,8 @@ def main():
     man = json.loads((rel / "mod" / "MANIFEST.json").read_text())
     root = env.HERE / "_build" / "installer_test"
     log = []
+    if not (env.ENV / "PR2.exe").exists():
+        raise SystemExit(f"no test install at {env.ENV}: run python tools/env.py setup (setting SN_TEST_ENV)")
 
     g = fake_game(root)
     before = tree(g)
