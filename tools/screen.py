@@ -5,13 +5,15 @@ user's mouse, keyboard or focus.
     python tools/screen.py shot [name]        # -> _build/shots/<name>.png
     python tools/screen.py click X Y          # client pixel coords of the shot
     python tools/screen.py key ESC|ENTER|F5|... [times]
-    python tools/screen.py type "text"
 
 Screenshots use PrintWindow, so they work while the window is covered; they are
 cropped to the game's own (DPI-virtualised) resolution, so shot pixel = click coord.
-The game reads input through DirectInput, which ignores window messages, so each
-click/key briefly brings the game to the front (~0.5 s) and then restores the
-user's foreground window and cursor position.
+
+Input goes through gamehost.py only (cmd.py "click" / "key": the host queues the
+input inside the game process), so the game must run under gamehost (session.py).
+The old helpers here that focused the game and moved the real cursor (flash,
+glide_to, type_text: SetForegroundWindow + mouse_event / keybd_event) were removed:
+tests must never take the user's focus or move the real mouse.
 """
 import ctypes as C
 import sys
@@ -30,8 +32,6 @@ SHOTS = Path(__file__).resolve().parents[1] / "_build" / "shots"
 VK = {"ESC": 0x1B, "ENTER": 0x0D, "SPACE": 0x20, "TAB": 0x09, "BACK": 0x08,
       "UP": 0x26, "DOWN": 0x28, "LEFT": 0x25, "RIGHT": 0x27,
       **{f"F{i}": 0x6F + i for i in range(1, 13)}}
-WM_KEYDOWN, WM_KEYUP, WM_CHAR = 0x100, 0x101, 0x102
-WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP = 0x200, 0x201, 0x202
 SWP_NOACTIVATE, SWP_NOZORDER = 0x10, 0x4
 
 
@@ -115,69 +115,23 @@ def shot(name=None):
     return path
 
 
-class flash:
-    """Bring the game to the front for one input burst, then put the user's
-    window and cursor back exactly where they were."""
-    def __enter__(self):
-        self.prev, self.cur = u.GetForegroundWindow(), W.POINT()
-        u.GetCursorPos(C.byref(self.cur))
-        self.hwnd = game_window()
-        u.keybd_event(0x12, 0, 0, 0); u.keybd_event(0x12, 0, 2, 0)   # Alt tap: lets us take focus
-        u.SetForegroundWindow(self.hwnd)
-        time.sleep(0.25)
-        if u.GetForegroundWindow() != self.hwnd:
-            raise SystemExit("could not focus the game; input not sent")
-        return self.hwnd
-
-    def __exit__(self, *exc):
-        time.sleep(0.15)
-        u.SetCursorPos(self.cur.x, self.cur.y)
-        if self.prev:
-            u.keybd_event(0x12, 0, 0, 0); u.keybd_event(0x12, 0, 2, 0)
-            u.SetForegroundWindow(self.prev)
-
-
-def glide_to(tx, ty):
-    """Reach (tx, ty) with small *relative* moves: DirectInput only sees real
-    movement deltas, never a SetCursorPos jump."""
-    cur = W.POINT()
-    for _ in range(400):
-        u.GetCursorPos(C.byref(cur))
-        dx, dy = tx - cur.x, ty - cur.y
-        if abs(dx) <= 1 and abs(dy) <= 1:
-            return
-        u.mouse_event(0x0001, max(-12, min(12, dx)), max(-12, min(12, dy)), 0, 0)
-        time.sleep(0.004)
+def _host(*args):
+    """One command to the running gamehost (background input, see the module doc)."""
+    import subprocess
+    out = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "cmd.py"), *map(str, args)],
+                         capture_output=True, text=True, errors="replace")
+    return out.stdout + out.stderr
 
 
 def click(x, y):
-    with flash() as hwnd:
-        s = scale(hwnd)
-        pt = W.POINT(int(x * s), int(y * s))
-        u.ClientToScreen(hwnd, C.byref(pt))
-        glide_to(pt.x, pt.y)
-        time.sleep(0.12)
-        u.mouse_event(0x0002, 0, 0, 0, 0)
-        time.sleep(0.08)
-        u.mouse_event(0x0004, 0, 0, 0, 0)
+    """Left click at client pixel (x, y) of a shot, through gamehost (no focus, no real mouse)."""
+    return _host("click", int(x), int(y))
 
 
 def key(name, times=1):
+    """A key press through gamehost (no focus): ESC, ENTER, F5, ... or a letter."""
     vk = VK[name] if name in VK else ord(name.upper())
-    scan = u.MapVirtualKeyW(vk, 0)
-    with flash():
-        for _ in range(times):
-            u.keybd_event(vk, scan, 0, 0)
-            time.sleep(0.06)
-            u.keybd_event(vk, scan, 2, 0)
-            time.sleep(0.15)
-
-
-def type_text(text):
-    with flash():
-        for ch in text:
-            vk = VK["SPACE"] if ch == " " else ord(ch.upper())
-            u.keybd_event(vk, 0, 0, 0); time.sleep(0.05); u.keybd_event(vk, 0, 2, 0); time.sleep(0.08)
+    return _host("key", hex(vk), int(times))
 
 
 if __name__ == "__main__":
@@ -187,10 +141,8 @@ if __name__ == "__main__":
     elif cmd == "shot":
         shot(args[0] if args else None)
     elif cmd == "click":
-        click(int(args[0]), int(args[1]))
+        print(click(int(args[0]), int(args[1])), end="")
     elif cmd == "key":
-        key(args[0], int(args[1]) if len(args) > 1 else 1)
-    elif cmd == "type":
-        type_text(args[0])
+        print(key(args[0], int(args[1]) if len(args) > 1 else 1), end="")
     else:
         sys.exit(__doc__)

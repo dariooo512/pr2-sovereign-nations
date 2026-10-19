@@ -42,6 +42,7 @@ void nation_frame(void)
     war_frame();
     navy_frame();
     panel_frame();
+    towninfo_frame();
     sight_frame();
     adapter_frame();
 }

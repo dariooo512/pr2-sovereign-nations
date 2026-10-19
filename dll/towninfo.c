@@ -54,7 +54,11 @@ typedef void (TC *VP_t)(void *self, void *a);
 #define D_ROLE          0xC4                  /* SID_StadtTyp (CTextBox) */
 #define D_RELATION      0xCC                  /* SID_Verhaeltniss (CTextBox) */
 
-static struct { void *dlg; int town, mode, flag_ok; } g_last;
+static struct {
+    void *dlg; int town, mode, flag_ok;
+    void *rel, *role;                         /* the section's boxes while the dialog is open (refresh) */
+    char loyal[48], role_text[128];           /* what they show */
+} g_last;
 
 static int town_index(const uint8_t *town)
 {
@@ -76,6 +80,7 @@ static void on_section(Regs *r)
     g_last.town = idx;
     g_last.mode = 0;
     g_last.flag_ok = 0;
+    g_last.rel = g_last.role = NULL;
     if (!core_officials_serve(s, idx, town[T_NATION])) return;      /* a power's town: vanilla */
 
     char role[128], loyal[48];
@@ -100,9 +105,51 @@ static void on_section(Regs *r)
         gui_show(cell, 1);
     }
     g_last.mode = 1;
+    g_last.rel = rel;
+    g_last.role = *(void **)(dlg + D_ROLE);
+    snprintf(g_last.loyal, sizeof g_last.loyal, "%s", loyal);
+    snprintf(g_last.role_text, sizeof g_last.role_text, "%s", role);
     log_line("TOWNINFO %s (town %d): nation section 'Your nation' / '%s', '%s'; flag %s "
              "(vanilla would show the display power %d)", eng_town_name(idx), idx, loyal, role,
              g_last.flag_ok ? "shown" : cell ? "NOT loaded" : "screen missing", town[T_NATION + 1]);
+}
+
+/* Every 15 frames while the dialog stays open. The section is written once, when the dialog is created
+   (its Refresh 0x4A4B00 leaves it alone), so a loyalty change (the daily drift, unrest, a tax change) or a
+   move of the capital did not show until the dialog was opened again. The dialog's boxes are alive while
+   the window manager still finds them by name; a dialog opened later runs on_section again and replaces
+   them. When the town has left the nation (retaken by a power) the refresh stops: the vanilla section
+   (relationship with that power, its flags, the reputation tier) cannot be rebuilt from here, and the
+   dialog shows it the next time it is opened. */
+void towninfo_frame(void)
+{
+    static unsigned tick;
+    if (!g_last.rel || ++tick % 15) return;
+    if (gui_find("SID_Verhaeltniss") != g_last.rel || gui_find("SID_StadtTyp") != g_last.role) {
+        g_last.rel = g_last.role = NULL;          /* closed (or another dialog): nothing to refresh */
+        return;
+    }
+    const NationState *s = adapter_state();
+    int idx = g_last.town;
+    if (!s || !s->founded || idx < 0 || idx >= MAX_TOWNS || !s->town[idx].member) {
+        log_line("TOWNINFO town %d left the nation while its town info was open: no more refresh", idx);
+        g_last.rel = g_last.role = NULL;
+        return;
+    }
+    char role[128], loyal[48];
+    core_town_role(s, idx, role, sizeof role);
+    core_loyalty_label(&s->town[idx], loyal, sizeof loyal);
+    if (strcmp(loyal, g_last.loyal)) {
+        gui_set_text(g_last.rel, loyal);
+        log_line("TOWNINFO %s (town %d): loyalty '%s' -> '%s' (refreshed while open)", eng_town_name(idx), idx,
+                 g_last.loyal, loyal);
+        snprintf(g_last.loyal, sizeof g_last.loyal, "%s", loyal);
+    }
+    if (strcmp(role, g_last.role_text)) {
+        gui_set_text(g_last.role, role);
+        log_line("TOWNINFO %s (town %d): role '%s' (refreshed while open)", eng_town_name(idx), idx, role);
+        snprintf(g_last.role_text, sizeof g_last.role_text, "%s", role);
+    }
 }
 
 /* 0x40822F in the nation-name helper's >= 4 branch: [esp] = L"Invalid" (the argument of

@@ -3,6 +3,8 @@
 /* The nation's own towns in the game's town info dialog and in the game's
    nation-name helper (towninfo.c, research/town_info_owner.md, the conquered-town info fix). */
 void towninfo_install(void);
+/* every frame: keeps an open dialog's nation section (loyalty, role) up to date */
+void towninfo_frame(void);
 
 /* test install: what the open town info dialog shows. Returns 1 when one is
    open; the texts are read back from its controls (cp1252). mode = 1 when the

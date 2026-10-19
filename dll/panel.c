@@ -401,7 +401,7 @@ static void found_setup(void *p, int key)
 
 static void found_do(void)
 {
-    char name[64], adj[64] = "", why[256] = "";
+    char name[64], capital[64] = "", why[256] = "";
     found_read_name();
     snprintf(name, sizeof name, "%s", g_fd.name);
     found_trim(name);
@@ -414,13 +414,15 @@ static void found_do(void)
         snprintf(g_fd.status, sizeof g_fd.status, "Open the town that should become your capital first.");
         return;
     }
-    town_name(g_fd.capital, adj, sizeof adj);
-    if (!api_found(g_fd.capital, name, adj, g_fd.title, g_fd.flag, why, sizeof why)) {
+    town_name(g_fd.capital, capital, sizeof capital);
+    /* no adjective: the page asks for none, so the core stores the nation's name (Nation_GetInfo's
+       adjective). Before, the capital's name went in here, which made no sense as an adjective. */
+    if (!api_found(g_fd.capital, name, "", g_fd.title, g_fd.flag, why, sizeof why)) {
         snprintf(g_fd.status, sizeof g_fd.status, "%s", why[0] ? why : "The nation could not be founded.");
         return;
     }
     snprintf(g_feedback, sizeof g_feedback, "The %s is born! %s is its capital. The nation button in the top "
-             "bar opens this window at any time.", name, adj);
+             "bar opens this window at any time.", name, capital);
     g_feedback_ok = 1;
     g_feedback_page = PANEL_OVERVIEW;
     g_fd.status[0] = 0;
@@ -1663,6 +1665,38 @@ static void overview_setup(void)
     }
 }
 
+/* "Form of state": the form and the months to the next reform, on one line. The box (art/make_overview.py,
+   258 px) holds every form with its countdown only in a smaller font: "Sovereign Government (reform in
+   25 months)" is about 274 px in the box's 14 px font. So the first of these that lays out as one line is
+   kept: all in the box's font, the countdown in the 13 px font, the whole line in it, and a short form. */
+#define OV_SMALL "<f:fonts/Tiepolo_bold13x13aaFHk.res>"
+static void overview_government(const NationState *s)
+{
+    static int logged = -1;                     /* government, countdown and form last logged (tests) */
+    void *box = gui_find("FNO_Val_1");
+    const char *gov = core_government_name(core_government(s));
+    int cd = core_government_cooldown(s), form = 0, h = 0;
+    int one = gui_set_textex(box, gov);         /* the height of one line */
+    if (box && cd > 0) {
+        const char *m = cd == 1 ? "" : "s";
+        char t[4][160];
+        snprintf(t[0], sizeof t[0], "%s (reform in %d month%s)", gov, cd, m);
+        snprintf(t[1], sizeof t[1], "%s " OV_SMALL "(reform in %d month%s)", gov, cd, m);
+        snprintf(t[2], sizeof t[2], OV_SMALL "%s (reform in %d month%s)", gov, cd, m);
+        snprintf(t[3], sizeof t[3], OV_SMALL "%s (reform: %d mo.)", gov, cd);
+        for (form = 1; form <= 4; form++) {
+            h = gui_set_textex(box, t[form - 1]);
+            if (one > 0 && h <= one) break;
+        }
+        if (form > 4) form = 4;                  /* the short form is kept anyway */
+    }
+    int key = core_government(s) << 16 | cd << 4 | form;
+    if (box && key != logged)
+        log_line("PANEL: Overview form of state '%s', reform in %d: text form %d (height %d, one line %d)",
+                 gov, cd, form, form ? h : one, one);
+    if (box) logged = key;
+}
+
 static void overview_fill(void)
 {
     const NationState *s = adapter_state();
@@ -1672,11 +1706,7 @@ static void overview_fill(void)
     load_flag(gui_find("FNO_Flag"), flag_nation_path(), g_ov_flag[0], sizeof g_ov_flag[0]);
     load_flag(gui_find("FNO_ColFlag"), flag_nation_path(), g_ov_flag[1], sizeof g_ov_flag[1]);
     set_textex("FNO_Val_0", s->name);
-    int cd = core_government_cooldown(s);
-    snprintf(t, sizeof t, "%s%s", core_government_name(core_government(s)), cd > 0 ? " (reform in a while)" : "");
-    if (cd > 0) snprintf(t, sizeof t, "%s (reform in %d month%s)", core_government_name(core_government(s)), cd,
-                         cd == 1 ? "" : "s");
-    set_textex("FNO_Val_1", t);
+    overview_government(s);
     if (s->capital < MAX_TOWNS) town_name(s->capital, cap, sizeof cap);
     set_textex("FNO_Val_2", s->capital < MAX_TOWNS ? cap : RED "none: the nation governs in exile" RESET);
     snprintf(t, sizeof t, "%s%d" RESET " / 100", s->stability >= 60 ? GREEN : s->stability < 35 ? RED : "", s->stability);

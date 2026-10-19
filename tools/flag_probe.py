@@ -174,17 +174,10 @@ def run_checks(a):
     record("FLG-04", n == [0] and not natc, f"Nation_NationalConvoys(1) -> {n}; player convoys among the national "
            f"ships: {natc}; counters {c3}")
     if not a.no_reload:
-        qs = env.SAVE_DIR / "Quick Save.pr2"
-        t0 = qs.stat().st_mtime if qs.exists() else 0
-        session.cmd("call", "0x57EE90", "0x700500")
-        for _ in range(30):
-            time.sleep(1)
-            if qs.exists() and qs.stat().st_mtime != t0:
-                break
-        time.sleep(3)
+        session.quicksave()                           # returns once the file is written
         F.M.kill_game()
-        session.load("Quick Save", [], "PR2_nation.exe")
-        time.sleep(6)
+        session.load("Quick Save", [], "PR2_nation.exe")   # returns once the world is ready
+        time.sleep(1)
         logo2, keep2, nat2, src2 = run_files("reload")
         v = enter_town(town)
         png = shot("05_reload_fleet_port")

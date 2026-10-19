@@ -7,6 +7,8 @@
  *
  *   ok, why        = Nation_CanFound(capital)
  *   ok, why        = Nation_Found(capital, name, adjective, title, flag)
+ *                    -- adjective "" = the nation's name (the founding page passes ""; saves made
+ *                       before that hold the capital's name there and keep it)
  *   founded, name, adjective, capital, treasury, stability, towns, tax, tariff = Nation_GetInfo()
  *   status, score, recognized, chance, threat = Nation_GetRelation(power)   (threat: AI evaluations
  *       since the power warned that it may declare war, 0 = no warning; the Holland war fix)

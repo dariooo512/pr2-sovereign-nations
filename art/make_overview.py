@@ -28,6 +28,13 @@ FACT_ICONS = [None, "Pr2_Symbol_Erfolge_Rang", "Pr2_Symbol_Stadt_AH", "Pr2_MiniS
               "Pr2_Symbol_Anker", "Pr2_Symbol_Papier"]          # row 0: the nation's flag
 TABLE = ["Pop", "Towns", "Rel", "Wars"]                         # rows of the comparison
 COL_X, COL_W = 120, 52
+# the values' column: 15 px right of the longest caption ("Form of state" ends at x = 145), to the
+# box's old right edge 418. The widest value is the form of state with the reform countdown,
+# "Sovereign Government (reform in 25 months)": about 274 px in the box's 14 px font, so it does not
+# fit even here; panel.c sets the countdown in the 13 px font (262 px), or the whole line (254 px),
+# whichever lays out on one line first. Was 202 (216 px wide): "Merchant Republic (reform in 24
+# months)" (252 px) was cut off.
+VAL_X = 160
 
 
 def load(name):
@@ -54,7 +61,7 @@ def main():
             kids.append(icon.clone(f"FNO_Icn_{i}").set("anim", f"scripts\\{anim}.anim")
                         .set_rect(40 - w // 2, y + 10 - h // 2, w, h))
         kids.append(erf.find("LOE_TxtCap_12").clone(f"FNO_Cap_{i}").set("y", y))
-        kids.append(erf.find("LOE_Txt_00").clone(f"FNO_Val_{i}").set_rect(202, y + 3, 216, 20))
+        kids.append(erf.find("LOE_Txt_00").clone(f"FNO_Val_{i}").set_rect(VAL_X, y + 3, 418 - VAL_X, 20))
     kids.append(erf.find("LOE_Trenner_00").clone("FNO_Sep_0").set("y", 200))
 
     # size and strength: the nation and the four powers

@@ -52,6 +52,17 @@ Refresh `0x4A4B00` does not touch the section (no call of `0x4081B0`, `0x5D2C10`
   * `+0xC4` the town type line "Capital of <nation>" / "Town of <nation>" (`core_town_role`).
 * Every other town (the powers', a vanilla bit-22 player town, a member town a power has retaken) runs vanilla
   untouched. Nothing is stored; the decision is made from the live state each time the dialog opens.
+* **Refresh while open** (`towninfo_frame`, from the DLL's per-frame hook `nation_frame`): the dialog's Refresh
+  `0x4A4B00` does not touch the section, so the hook's text was the loyalty of the moment the dialog opened. The
+  hook keeps the two boxes it wrote (`+0xCC` relation, `+0xC4` role) and their texts. Every 15 frames, while the
+  window manager still finds `SID_Verhaeltniss` and `SID_StadtTyp` at those addresses (the dialog is open; a
+  newly opened dialog runs the hook again and replaces them), it recomputes `core_loyalty_label` /
+  `core_town_role` and sets a box's text only when it changed (log `TOWNINFO ... refreshed while open`). It reads
+  no game memory of the dialog itself, only `FindDrawable`, the same lookup the panel uses every frame. When the
+  town leaves the nation while the window is open the refresh stops: the vanilla section (the power's name, its
+  flags, the reputation tier) is built only by Create, so the window keeps the last nation text until it is
+  opened again. In game: a private probe LO-03 (loyalty 15 / 80 / 35 with the capital's window open,
+  a power's window left alone, no refresh after closing).
 * Log: `TOWNINFO <town> (town N): nation section 'Your nation' / '<label>', '<role>'; flag shown (vanilla would show
   the display power D)`.
 

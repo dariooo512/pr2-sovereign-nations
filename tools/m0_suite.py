@@ -50,10 +50,29 @@ def record(test, ok, detail):
     print(f"{'PASS' if ok else 'FAIL'}  {test:<8} {detail}", flush=True)
 
 
+GAME_EXES = ("PR2_nation.exe", "PR2_target.exe")
+
+
+def games_running():
+    out = subprocess.run(["tasklist", "/NH", "/FO", "CSV"], capture_output=True, text=True, errors="replace").stdout
+    return [e for e in GAME_EXES if f'"{e.lower()}"' in out.lower()]
+
+
 def kill_game():
-    for exe in ("PR2_nation.exe", "PR2_target.exe"):
+    """Kill the test game and wait until it is really gone (process and its gamehost), instead of a fixed pause."""
+    running = games_running()
+    for exe in running:
         subprocess.run(["taskkill", "/IM", exe, "/F"], capture_output=True)
-    time.sleep(2)
+    t0 = time.time()
+    while running and time.time() - t0 < 20:
+        time.sleep(0.2)
+        running = games_running()
+    if session._host is not None:
+        try:
+            session._host.wait(timeout=10)            # gamehost logs EXIT and quits with its game
+        except subprocess.TimeoutExpired:
+            session._host.kill()
+    time.sleep(0.5)                                   # let Windows release the window and the D3D device
 
 
 def game_alive():
@@ -185,6 +204,7 @@ def main():
                 scenario_war(1)
         finally:
             kill_game()
+            session.restore_options()
             for f in backup.iterdir():                      # restore the user's saves/settings
                 if f.is_file():
                     shutil.copy2(f, env.SAVE_DIR / f.name)

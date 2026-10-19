@@ -3,7 +3,8 @@
     python tools/flag_probe2.py [x,y]     # town-minimap point to click (Margarita's harbour)
 
 Loads FNN 46 (Margarita: the nation's fleet and a player convoy lie in the harbour), clicks the town
-minimap once (one short focus flash) to look at the harbour, designates the player's convoy national
+minimap once (through gamehost, in the background like every other probe: no focus, no real mouse) to
+look at the harbour, designates the player's convoy national
 and releases it again (same view), sends both to sea and does the same there, then makes an "older"
 save whose embedded logo is the nation's flag and reloads it.
 Screenshots _build/shots/flag_h*.png; counters from Nation_DevFlags.
@@ -17,7 +18,6 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import env  # noqa: E402
 import session  # noqa: E402
-import screen  # noqa: E402
 import flag_probe as P  # noqa: E402
 
 CLICK = tuple(int(v) for v in sys.argv[1].split(",")) if len(sys.argv) > 1 else (1195, 690)
@@ -56,7 +56,7 @@ def main():
         session.load("FNN 46 - Navy - Great power with a fleet", [], "PR2_nation.exe")
         time.sleep(4)
         print("view", P.view(), P.counters(), flush=True)
-        screen.click(*CLICK)
+        session.cmd("click", *CLICK)                  # gamehost: queued input, no focus
         step("h1_port")
         step("h2_port_designated", 'Nation_Log("n", Nation_NationalConvoys(1))')
         step("h3_port_released", 'Nation_Log("n", Nation_NationalConvoys(0))')

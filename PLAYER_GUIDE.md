@@ -79,7 +79,7 @@ You can found only one nation per game.
 - In other powers' towns your reputation with that power counts as usual.
 
 **Town info of your towns**
-- The game's town info window (click the town's name in town, or *Town info* on the Towns tab) of a town of your nation says *Capital of …* or *Town of …* your nation under the name, and its fourth section is **Your nation**: the nation's flag and the town's loyalty as on the Towns tab — *loyal (72)* from 50, *calm (35)* from 20, *restless (18)* below 20 or when unrest is coming, *in unrest* during open unrest.
+- The game's town info window (click the town's name in town, or *Town info* on the Towns tab) of a town of your nation says *Capital of …* or *Town of …* your nation under the name, and its fourth section is **Your nation**: the nation's flag and the town's loyalty as on the Towns tab — *loyal (72)* from 50, *calm (35)* from 20, *restless (18)* below 20 or when unrest is coming, *in unrest* during open unrest. The section follows the town while the window stays open: a change of loyalty shows at once.
 - In a power's town the section is the game's own *Your relationship with …* line.
 
 **Stability**

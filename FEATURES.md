@@ -33,7 +33,7 @@ each with strengths and weaknesses; a reform costs stability and is possible eve
 
 **Stability and loyalty.** The nation's stability and each town's loyalty respond to taxes, wars, solvency and
 conquest. Low loyalty leads to strikes and, after four months, to secession. The game's town info window of a nation
-town shows *Your nation* with the nation's flag and the town's loyalty.
+town shows *Your nation* with the nation's flag and the town's loyalty, kept up to date while the window is open.
 
 **National navy.** Fleets sailed by the game's own military AI: they patrol, raid enemy trade, besiege enemy towns, and
 defend yours; they never attack a power you are at peace with (a ceasefire ends their raids). Your naval rank grows with the nation and unlocks more fleets and orders; each fleet can also get its own

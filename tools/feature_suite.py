@@ -16,6 +16,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import console  # noqa: E402
 import env  # noqa: E402
 import m0_suite as M  # noqa: E402
 import session  # noqa: E402
@@ -24,6 +25,8 @@ BUILD = env.HERE / "_build" / "feature" / "PR2_nation.exe"
 REPORT = env.HERE / ("UI_RESULTS.md" if "--ui-only" in sys.argv else "FEATURE_RESULTS.md")
 CAPITAL = 56              # Margarita (start town, Spanish governor seat)
 SPAIN = 3
+UI = 0.3                  # after a panel API call (the panel acts at once and redraws on the next frame)
+CLICK = 0.6               # after a click injected by gamehost (over the next 3 frames)
 results = []
 
 
@@ -34,16 +37,15 @@ def record(test, ok, detail):
 
 def lua(code):
     """Run Lua in the game; return {label: [values]} from Nation_Log lines."""
-    p = subprocess.run([sys.executable, str(HERE / "console.py"), "-"], input=code,
-                       capture_output=True, text=True, errors="replace", timeout=60)
+    text = console.run(code)                          # in-process: no Python start per call
     out = {}
-    for line in p.stdout.splitlines():
+    for line in text.splitlines():
         m = re.search(r"LUA: (.*)", line)
         if m:
             parts = [x.strip() for x in m.group(1).split("|")]
             out[parts[0]] = parts[1:]
-    if "LUA error" in p.stdout:
-        out["__error__"] = [p.stdout]
+    if "LUA error" in text:
+        out["__error__"] = [text]
     return out
 
 
@@ -63,7 +65,7 @@ def run_days(n):
     t0 = time.time()
     try:
         while time.time() - t0 < 60 * 12:
-            time.sleep(5)
+            time.sleep(1)
             if M.crashes() or not M.game_alive():
                 return False
             now = int(lua('Nation_Log("d", Nation_GetFinance())').get("d", [0] * 7)[6] or start)
@@ -112,29 +114,27 @@ def ui_checks():
            f"nation mission exists after load (GLOBALS.FNN_MISSION={r.get('m')})")
     pos = LOG.stat().st_size
     lua("Nation_DevOpenMenu()")
-    time.sleep(4)
-    out = log_since(pos)
+    out = wait_log(r"menu event posted", pos, 8)
+    time.sleep(UI)
     info = panel_info()
     record("UI-02", "(handled)" in out and info[:1] == ["1"],
            f"menu event {'handled' if '(handled)' in out else 'NOT handled'} -> panel open {info}")
     shot("ui_panel")
     lua("Nation_PanelClose()")
-    time.sleep(2)
+    time.sleep(UI)
     # the nation button in the top bar, clicked like a player (twice: open, then close)
     ok, x, y = gui_center("TMB_Nation")
     opened = closed = None
     if ok:
         session.cmd("click", str(x), str(y))
-        time.sleep(3)
-        opened = panel_info()
+        opened = wait_panel("1")
         shot("ui_topbar_open")
         session.cmd("click", str(x), str(y))
-        time.sleep(3)
-        closed = panel_info()
+        closed = wait_panel("0")
     record("UI-03", ok and opened[:1] == ["1"] and closed[:1] == ["0"],
            f"top-bar nation button at {x},{y}: open {opened}, then closed {closed}")
     r = lua('Nation_Message("Sovereign Nations: message test")\nNation_Log("msg", 1)')
-    time.sleep(3)
+    time.sleep(2)                                     # the ticker shows it, for the screenshot
     shot("ui_message")
     record("UI-04", "msg" in r, "ticker message queued (see _build/shots/ui_message.png)")
 
@@ -226,8 +226,7 @@ Nation_Log("gov2", ok2, why2)''')
            f"ceasefire proposal {r.get('cf')}: status {status}, player_rel[Spain]={table} (consistent)")
 
     pre = lua('Nation_Log("info", Nation_GetInfo())\nNation_Log("rel", Nation_GetRelation(3))\nNation_Log("fin", Nation_GetFinance())')
-    session.cmd("call", "0x57EE90", "0x700500")
-    time.sleep(5)
+    session.quicksave()
     M.kill_game()
     session.load("Quick Save", [], "PR2_nation.exe")
     post = lua('Nation_Log("info", Nation_GetInfo())\nNation_Log("rel", Nation_GetRelation(3))\nNation_Log("fin", Nation_GetFinance())')
@@ -261,6 +260,27 @@ def panel_info():
     return lua('Nation_Log("i", Nation_PanelInfo())').get("i", ["?", "?", "0"])
 
 
+def wait_panel(is_open, limit=6):
+    """Nation_PanelInfo once the panel is open ("1") or closed ("0"), or after `limit` s."""
+    t0 = time.time()
+    time.sleep(CLICK)
+    info_ = panel_info()
+    while info_[:1] != [is_open] and time.time() - t0 < limit:
+        time.sleep(0.3)
+        info_ = panel_info()
+    return info_
+
+
+def wait_log(pattern, pos, limit):
+    """PR2Nation.log after byte offset pos, once `pattern` is in it (or after `limit` s)."""
+    t0 = time.time()
+    out = log_since(pos)
+    while not re.search(pattern, out) and time.time() - t0 < limit:
+        time.sleep(0.25)
+        out = log_since(pos)
+    return out
+
+
 def to_window(x, y):
     """Layout pixels (1024x768, CDrawable::AbsPos) -> the test window's client pixels."""
     import screen
@@ -281,7 +301,7 @@ def click_ctl(name):
     ok, x, y = gui_center(name)
     if ok:
         session.cmd("click", str(x), str(y))
-        time.sleep(2.5)
+        time.sleep(CLICK)
     print(f"  click {name}: {'at %d,%d' % (x, y) if ok else 'not found'}", flush=True)
     return ok
 
@@ -293,7 +313,7 @@ def click_row(key):
         return False
     x, y = to_window(int(r[1]) + int(r[3]) // 2, int(r[2]) + int(r[4]) // 2)
     session.cmd("click", str(x), str(y))
-    time.sleep(2.5)
+    time.sleep(CLICK)
     return True
 
 
@@ -306,9 +326,9 @@ def ui_pages():
     """UI-05..08: the Treasury and Towns pages' controls, clicked like a player; the Overview after a petition."""
     i0, _ = info()
     lua("Nation_PanelOpen(1)")
-    time.sleep(2.5)
+    time.sleep(UI)
     lua("Nation_PanelMode(0)")                                # start on the balance, as a player finds it
-    time.sleep(1.5)
+    time.sleep(UI)
     ok = click_ctl("FNT_kredite") and click_ctl("FNT_Donate")  # Taxes and finances, Donate 10,000
     i1, _ = info()
     shot("ui_donated")
@@ -321,9 +341,9 @@ def ui_pages():
     record("UI-06", ok and i2[8] != i1[8], f"Treasury: import tariff arrow -> tariff {i1[8]}% -> {i2[8]}%")
 
     lua("Nation_PanelOpen(2)")
-    time.sleep(2.5)
+    time.sleep(UI)
     lua("Nation_PanelMode(0)")
-    time.sleep(1.5)
+    time.sleep(UI)
     ok = click_row(CAPITAL) and click_ctl("FNW_TaxInc")       # select the capital, raise its tax
     fb = panel_feedback()
     shot("ui_town_tax")
@@ -353,16 +373,16 @@ def ui_petition_overview():
     cand = next((t for t in (52, 55, 50, 53, 26) if lua(f'Nation_Log("t", Nation_GetTown({t}))').get("t", ["1"])[0] == "0"), None)
     lua(f'Nation_Log("d", Nation_DevSet("petition", {cand}))')
     lua("Nation_PanelOpen(2)")
-    time.sleep(2.5)
+    time.sleep(UI)
     lua("Nation_PanelMode(1)")                                # Towns for sale: the petition's row
-    time.sleep(1.5)
+    time.sleep(UI)
     lua(f"Nation_PanelSelect({100 + cand})")
-    time.sleep(1.5)
+    time.sleep(UI)
     lua("Nation_PanelClick(3102)")                            # Accept
-    time.sleep(2.5)
+    time.sleep(UI)
     joined = lua(f'Nation_Log("t", Nation_GetTown({cand}))').get("t", ["0"])[0] == "1"
     lua("Nation_PanelOpen(0)")
-    time.sleep(3)
+    time.sleep(2.5)                                           # the Overview drawn with its flags for the screenshot
     path = None
     try:
         path = screen.shot("ui_overview_after_petition")
@@ -402,6 +422,7 @@ def main():
             record("RUN", False, f"aborted: {e}")
     finally:
         M.kill_game()
+        session.restore_options()
         for f in backup.iterdir():
             if f.is_file():
                 shutil.copy2(f, env.SAVE_DIR / f.name)

@@ -197,6 +197,56 @@ static void test_fnd03(void)
     CHECK(same_state(&s, &before) && e.n == 0);
 }
 
+/* ADJ: the nation's adjective (Nation_GetInfo). The panel founds with none, so the core stores the
+   nation's name; before, the panel stored the capital's name there. Such a save must keep loading,
+   with its adjective as it was. */
+static void v1_buffer(const NationState *s, uint8_t *buf)
+{
+    NationState v1;
+    memcpy(&v1, s, NATION_STATE_V1_SIZE);
+    v1.version = 1;
+    v1.size = NATION_STATE_V1_SIZE;
+    memcpy(buf, &v1, NATION_STATE_V1_SIZE);
+    uint32_t h = 2166136261u;                                /* the version-1 checksum (FNV-1a) */
+    for (size_t i = 0; i < offsetof(NationState, checksum); i++) { h ^= buf[i]; h *= 16777619u; }
+    memcpy(buf + offsetof(NationState, checksum), &h, 4);
+}
+
+static void test_adjective(void)
+{
+    printf("ADJ-01 founding without an adjective stores the nation's name; old saves keep theirs\n");
+    Config c; World w; NationState s; Effects e; char why[160];
+    core_default_config(&c);
+    make_world(&w); core_init(&s); memset(&e, 0, sizeof e);
+    CHECK(core_found(&s, &w, &c, 0, "Kingdom of Tortuga", "", 0, 0, &e, why, sizeof why) == 1);
+    CHECK(!strcmp(s.adjective, "Kingdom of Tortuga") && !strcmp(s.adjective, s.name));
+    make_world(&w); core_init(&s); memset(&e, 0, sizeof e);
+    CHECK(core_found(&s, &w, &c, 0, "Kingdom of Tortuga", NULL, 0, 0, &e, why, sizeof why) == 1);
+    CHECK(!strcmp(s.adjective, "Kingdom of Tortuga"));
+    CHECK(has_msg(&e, "Kingdom of Tortuga") && !has_msg(&e, "Tortugan"));
+
+    /* an old save: the panel stored the capital's name as the adjective */
+    snprintf(s.adjective, sizeof s.adjective, "%s", "Turk Islands");
+    static uint8_t buf[sizeof(NationState) + 16];
+    NationState back;
+    int n = core_serialize(&s, buf, sizeof buf);
+    CHECK(n == (int)sizeof(NationState) && core_deserialize(&back, buf, n) == 1);
+    CHECK(!strcmp(back.adjective, "Turk Islands") && !strcmp(back.name, "Kingdom of Tortuga"));
+    v1_buffer(&s, buf);                                      /* the same from a version-1 save */
+    CHECK(core_deserialize(&back, buf, NATION_STATE_V1_SIZE) == 1);
+    CHECK(!strcmp(back.adjective, "Turk Islands") && !strcmp(back.name, "Kingdom of Tortuga"));
+    /* the old adjective is not used in the nation's messages: a month and a war still name the nation */
+    memset(&e, 0, sizeof e);
+    w.day = back.last_month_day + 31;
+    core_daily(&back, &w, &c, &e);
+    CHECK(core_declare_war(&back, &w, 1, &e) == 1 && has_msg(&e, "Kingdom of Tortuga"));
+    CHECK(!has_msg(&e, "Turk Islands"));
+    /* an empty adjective (never written by the core) still loads */
+    s.adjective[0] = 0;
+    n = core_serialize(&s, buf, sizeof buf);
+    CHECK(core_deserialize(&back, buf, n) == 1 && back.adjective[0] == 0);
+}
+
 /* annex by conquest (reason 0) -- needs a war with the town's power */
 static int annex_conq(NationState *s, World *w, int t, Effects *e)
 {
@@ -1872,6 +1922,7 @@ int main(void)
     test_fnd01();
     test_fnd02();
     test_fnd03();
+    test_adjective();
     test_ter01_02();
     test_ter03();
     test_dip01();

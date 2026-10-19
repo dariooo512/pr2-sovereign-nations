@@ -377,8 +377,9 @@ static void on_fleet_arrived(Regs *r)
     g_attack[h % 16][0] = h;
     g_attack[h % 16][1] = game_day();
     *(uint16_t *)(k + K_FLAGS48) |= 0x40;
-    log_line("NAVY: fleet %08X attacks a %s town (sailors %u vs %u soldiers, %u towers; day %u)",
-             *(uint32_t *)(k + K_HANDLE), k_adj[owner], sailors, soldiers, towers, game_day());
+    log_line("NAVY: fleet %08X attacks %s %s town (sailors %u vs %u soldiers, %u towers; day %u)",
+             *(uint32_t *)(k + K_HANDLE), core_article(k_adj[owner], 0), k_adj[owner], sailors, soldiers, towers,
+             game_day());
     TownAttack(fleet_handle(k));
 }
 

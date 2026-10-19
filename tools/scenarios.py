@@ -40,6 +40,11 @@ REPORT = env.HERE / "SCENARIO_RESULTS.md"
 CAPITAL, CORO, SPAIN, ENGLAND = 56, 52, 3, 0
 # menu pages (include.ini FNN_P_*) and their button counts
 PANEL_FOUND = 6                                       # the founding page (before founding)
+# Pauses after UI actions. A Nation_* call runs in the DLL's console, which takes a script only every 30
+# frames, and the panel API acts at once (refreshes on the next frame), so consecutive Lua calls need no
+# pause between them. A gamehost click is injected over the next 3 frames after cmd() returns.
+UI = 0.3                                              # after a panel API call
+CLICK = 0.6                                           # after a click injected by gamehost
 
 results = []
 current = {"id": "?"}
@@ -94,7 +99,7 @@ def wait_fleets(n, limit=20):
     while time.time() - t0 < limit:
         if navy().get("fleets") == n:
             return True
-        time.sleep(1)
+        time.sleep(0.5)
     return False
 
 
@@ -149,8 +154,7 @@ def popup_press(btn, page, shot):
     for _ in range(2):                                # a popup that just opened can miss the first click
         pos = F.LOG.stat().st_size
         session.cmd("click", *found[btn])
-        time.sleep(2.5)
-        m = re.search(r"FNN popup close \| (\S+) \| (\S+)", F.log_since(pos))
+        m = wait_log(r"FNN popup close \| (\S+) \| (\S+)", pos, 4)
         if m:
             break
     if not m or m.groups() != (str(page), str(btn)):
@@ -161,7 +165,7 @@ def confirm():
     """Answer the page's question (Withdraw on the Treasury, Declare war on Diplomacy) with yes."""
     page = (lua('Nation_Log("i", Nation_PanelInfo())').get("i", ["0", "-1"]) + ["-1"])[1]
     lua(f"Nation_PanelClick({3007 if page == '1' else 3200})")
-    time.sleep(2.5)
+    time.sleep(UI)
     return panel_result()
 
 
@@ -195,7 +199,7 @@ def run_to_day(day, limit=300):
             d = day_of_month()
             if d is not None and d >= day:
                 return d
-            time.sleep(1)
+            time.sleep(0.5)
         raise Fail(f"day {day} not reached in {limit}s (last {day_of_month()})")
     finally:
         fast(False)
@@ -210,7 +214,7 @@ def run_to_day_offset(days, limit=240):
     t0 = time.time()
     try:
         while time.time() - t0 < limit:
-            time.sleep(2)
+            time.sleep(0.5)
             if not M.game_alive():
                 raise Fail("game exited")
             if finance().get("today", start) - start >= days:
@@ -228,7 +232,7 @@ def run_to_month_end(limit=300):
     t0 = time.time()
     try:
         while time.time() - t0 < limit:
-            time.sleep(2)
+            time.sleep(0.5)
             if not M.game_alive():
                 raise Fail("game exited during the month")
             now = finance()
@@ -304,12 +308,11 @@ def conquest_battle(expect_conquest):
 
 def wait_log(pattern, mark, limit=30):
     t0 = time.time()
-    while time.time() - t0 < limit:
+    while True:
         m = re.search(pattern, F.log_since(mark))
-        if m:
+        if m or time.time() - t0 >= limit:
             return m
-        time.sleep(1)
-    return None
+        time.sleep(0.25)
 
 
 # -------------------------------------------------------------- registry --
@@ -360,10 +363,10 @@ def by_id(i):
           "Nothing changes.")
 def s01():
     lua("Nation_PanelOpen(-1)")
-    time.sleep(3)
+    time.sleep(UI)
     page = lua('Nation_Log("i", Nation_PanelInfo())').get("i", ["0", "-1"])
     lua("Nation_PanelClick(104)")                     # Found the nation
-    time.sleep(2.5)
+    time.sleep(UI)
     i = info()
     body = lua('Nation_Log("c", Nation_PanelCard(0))').get("c", ["", ""])[1]
     record("refused", page[1:2] == [str(PANEL_FOUND)] and i.get("founded") == "0" and "gold" in body,
@@ -381,12 +384,11 @@ def s01():
 def s02():
     spain0 = int(lua('Nation_Log("n", Nation_GetNumTowns(3))')["n"][0])
     lua("Nation_PanelOpen(-1)")
-    time.sleep(3)
-    for _ in range(37):                               # flag 0 -> 37 (No. 38 of 100)
-        lua("Nation_PanelClick(103)")
-    time.sleep(1)
+    time.sleep(UI)
+    lua("for i = 1, 37 do Nation_PanelClick(103) end")   # flag 0 -> 37 (No. 38 of 100): 37 presses of the arrow
+    time.sleep(UI)
     lua("Nation_PanelClick(104)")                     # Found the nation
-    time.sleep(3)
+    time.sleep(UI)
     i = info()
     spain1 = int(lua('Nation_Log("n", Nation_GetNumTowns(3))')["n"][0])
     record("founded", i.get("founded") == "1" and i.get("name") == "Republic of Margarita"
@@ -396,7 +398,7 @@ def s02():
     fl = lua('Nation_Log("f", Nation_GetFlag(), Nation_FlagName(Nation_GetFlag()))').get("f", [])
     record("flag", fl[:1] == ["37"], f"flag {fl}")
     record("logo", logo_is(37), "Run\\7.bmp (the nation's flag) is flag No. 37; the player's logo Run\\0.bmp is kept")
-    time.sleep(3)
+    time.sleep(1.5)                                   # the founding message and the panel drawn for the screenshot
     shot("after_founding")
 
 
@@ -442,7 +444,7 @@ def s11():
     panel_press(1, "Import tariff 5%", 0)              # Apply
     record("tariff", info().get("tariff") == "5", f"tariff {info().get('tariff')}%")
     lua("Nation_PanelOpen(5)")                        # Navy and defence: no national convoys any more
-    time.sleep(2.5)
+    time.sleep(UI)
     panel_mode(NAVY_FLEETS)
     rows = [name for _, name, _ in panel_rows()]
     lua("Nation_PanelClose()")
@@ -676,7 +678,7 @@ def s22():
     conquest_battle(True)
     if not wait_log(rf"UI: conquest popup for town {CORO}", mark):
         raise Fail("the conquest popup was not opened")
-    time.sleep(2)
+    time.sleep(2)                                     # drawn before the screenshot looks for its buttons
     popup_press(0, CONQ, "annex")
     spain1 = int(lua('Nation_Log("n", Nation_GetNumTowns(3))')["n"][0])
     record("annexed", town(CORO).get("member") == 1 and owner_byte(CORO) == 5,
@@ -748,8 +750,7 @@ def s26():
         return (info(), gov(), [relation(p) for p in range(4)], town(CORO), town(CAPITAL),
                 [war_table(p) for p in range(4)])
     a = snap()
-    session.cmd("call", "0x57EE90", "0x700500")
-    time.sleep(6)
+    session.quicksave()
     M.kill_game()
     session.load("Quick Save", [], EXE)
     b = snap()
@@ -1019,18 +1020,19 @@ def _s38_setup():
           "While paused nothing opens; after unpausing the nation panel opens normally.", save=False)
 def s39():
     session.cmd("call", "0x57EDF0", "0x700500")         # pause
-    time.sleep(2)
+    time.sleep(CLICK)                                   # the call runs on the UI thread's next frame
     mark = log_mark()
     lua("Nation_DevOpenMenu()")
-    time.sleep(3)
+    wait_log(r"DEVMENU|menu event posted", mark, 6)     # the request is taken on the next frame
+    time.sleep(1)                                       # ... and nothing opens after it
     out = F.log_since(mark)
     record("paused-ignored", "DEVMENU: ignored" in out and "menu event posted" not in out,
            "menu request ignored while paused" if "DEVMENU: ignored" in out else out[-200:])
     session.cmd("call", "0x57EFD0", "0x700500")         # unpause
-    time.sleep(2)
+    time.sleep(CLICK)
     mark = log_mark()
     lua("Nation_DevOpenMenu()")
-    time.sleep(3)
+    wait_log(r"menu event posted \(handled\)", mark, 6)
     info_ = lua('Nation_Log("i", Nation_PanelInfo())').get("i", ["0"])
     record("unpaused-opens", "menu event posted (handled)" in F.log_since(mark) and info_[:1] == ["1"],
            f"after unpausing the menu event opens the panel {info_}")
@@ -1288,7 +1290,7 @@ def s46():
                           f"dest {int.from_bytes(raw[0x1B0:0x1B4], 'little'):#x} mask {d['mask']:#x} sailors {d['sailors']}",
                           flush=True)
             out = F.log_since(mark)
-            attack = attack or re.search(r"NAVY: fleet [0-9A-F]+ attacks a Spanish town[^\n]*", out)
+            attack = attack or re.search(r"NAVY: fleet [0-9A-F]+ attacks an? Spanish town[^\n]*", out)
             conquest = re.search(r"WAR navy conquest of town 52[^\n]*", out)
     finally:
         fast(False)
@@ -1410,14 +1412,14 @@ def panel_result():
     return ("Please confirm" if ok == "2" else "Done" if ok == "1" and text else "Not possible" if text else "", text)
 
 
-def panel_key(key, wait=2.5):
+def panel_key(key, wait=UI):
     lua(f"Nation_PanelClick({key})")
     time.sleep(wait)
 
 
 def panel_mode(mode):
     lua(f"Nation_PanelMode({mode})")
-    time.sleep(1.5)
+    time.sleep(UI)
 
 
 def panel_select_row(match):
@@ -1427,7 +1429,7 @@ def panel_select_row(match):
     if row is None:
         raise Fail(f"no row {match!r}: {[(k, n) for k, n, _ in rows]}")
     lua(f"Nation_PanelSelect({row[0]})")
-    time.sleep(1.5)
+    time.sleep(UI)
     return row
 
 
@@ -1442,7 +1444,7 @@ def panel_press(page, what, slot=0):
     Navy 'National navy' (Commission / Pay off), 'Fleet N' (Next order / Next target),
     'Defence of <town>' (Recruit / Build tower). Returns panel_result()."""
     lua(f"Nation_PanelOpen({page})")
-    time.sleep(2.5)
+    time.sleep(UI)
     if page == 1:
         panel_mode(TREASURY_FINANCE)
         key = {"Accounts": (3007, 3008), "National tax": (3002, 3001), "Import tariff": (3004, 3003)}
@@ -1465,8 +1467,8 @@ def panel_press(page, what, slot=0):
         if g is None:
             raise Fail(f"no form of government {what!r}")
         lua(f"Nation_PanelMode({g})")
-        time.sleep(1.5)
-        panel_key(3402, 1.5)                                    # Adopt ...
+        time.sleep(UI)
+        panel_key(3402)                                         # Adopt ...
         panel_key(3402)                                         # ... Confirm reform
     elif page == 5:
         if what == "National navy":
@@ -1481,7 +1483,7 @@ def panel_press(page, what, slot=0):
             if len(rows) < n:
                 raise Fail(f"no {what}: {rows}")
             lua(f"Nation_PanelSelect({rows[n - 1][0]})")
-            time.sleep(1.5)
+            time.sleep(UI)
         panel_key(3300 + slot)
     else:
         raise Fail(f"panel_press: page {page}")
@@ -1491,7 +1493,7 @@ def panel_press(page, what, slot=0):
 def fleet_order(n=1):
     """The order shown on fleet n's row of the Navy page (lower case), e.g. 'campaign: coro'."""
     lua("Nation_PanelOpen(5)")
-    time.sleep(2)
+    time.sleep(UI)
     panel_mode(NAVY_FLEETS)
     rows = panel_rows()
     return rows[n - 1][2][0].lower() if len(rows) >= n else ""
@@ -1570,7 +1572,7 @@ def s51():
                 dev("soldiers", CORO, 5)              # vanilla keeps recruiting
     finally:
         fast(False)
-    attacks = re.findall(r"NAVY: fleet [0-9A-F]+ attacks a Spanish town[^\n]*", F.log_since(mark))
+    attacks = re.findall(r"NAVY: fleet [0-9A-F]+ attacks an? Spanish town[^\n]*", F.log_since(mark))
     days = {}                                         # fleet -> game days of its attacks
     for a in attacks:
         m = re.search(r"fleet ([0-9A-F]+) .*day (\d+)\)", a)
@@ -1591,8 +1593,7 @@ def s51():
             break
         panel_press(5, "Fleet 1", 0)
     lua("Nation_PanelClose()")
-    session.cmd("call", "0x57EE90", "0x700500")
-    time.sleep(8)
+    session.quicksave()
     M.kill_game()
     session.load("Quick Save", [], EXE)
     log = F.log_since(0)
@@ -1709,8 +1710,7 @@ def s52():
     log = F.log_since(0)
     record("hook", "OFFICIALS" in log and "sovereign, full access" in log,
            "; ".join(sorted(set(re.findall(r"OFFICIALS ([^\n]*?) in ", log))))[:250])
-    session.cmd("call", "0x57EE90", "0x700500")                     # QuickSave, then cold reload
-    time.sleep(8)
+    session.quicksave()                                             # QuickSave, then cold reload
     M.kill_game()
     session.load("Quick Save", [], EXE)
     refresh_towns()
@@ -1745,9 +1745,9 @@ def s54():
     record("still-peace", r.get("status") == 0 and len(rv) >= 5 and rv[4] >= 1 and war_table(SPAIN) == 0,
            f"Spain {r}, threat {rv[4] if len(rv) >= 5 else '?'}, player_rel {war_table(SPAIN)}")
     lua("Nation_PanelOpen(3)")
-    time.sleep(2.5)
+    time.sleep(UI)
     lua(f"Nation_PanelSelect({SPAIN})")
-    time.sleep(1.5)
+    time.sleep(1.5)                                   # drawn for the screenshot below
     row = lua(f'Nation_Log("w", Nation_PanelRow({SPAIN}))').get("w", [])
     shot("diplomacy_threat")
     lua("Nation_PanelClose()")
@@ -1810,7 +1810,8 @@ def s55():
     before = tasks()
     mark = log_mark()
     dev("status", SPAIN, 5)                           # ceasefire: player_rel[Spain] = 0
-    time.sleep(4)
+    wait_log(r"MSG Your fleets break off their raids on Spanish shipping", mark, 8)
+    time.sleep(1)                                     # the fleets' tasks are cleared on the same pass
     log = F.log_since(mark)
     after = tasks()
     stopped = re.search(r"NAVY: fleet [0-9A-F]+ stops raiding Spanish shipping[^\n]*", log)
@@ -1830,16 +1831,7 @@ def s55():
 
 # ------------------------------------------------------------------ driver --
 def quicksave_as(sc):
-    qs = env.SAVE_DIR / "Quick Save.pr2"
-    t0 = qs.stat().st_mtime if qs.exists() else 0
-    session.cmd("call", "0x57EE90", "0x700500")
-    for _ in range(30):
-        time.sleep(1)
-        if qs.exists() and qs.stat().st_mtime != t0:
-            break
-    else:
-        raise Fail("QuickSave did not write 'Quick Save.pr2'")
-    time.sleep(2)
+    qs = session.quicksave()
     SAVES_OUT.mkdir(parents=True, exist_ok=True)
     shutil.copy2(qs, env.SAVE_DIR / f"{sc.save_name}.pr2")
     shutil.copy2(qs, SAVES_OUT / f"{sc.save_name}.pr2")
@@ -1970,6 +1962,7 @@ def main():
                         record("run", False, traceback.format_exc(limit=3).replace("\n", " "))
     finally:
         M.kill_game()
+        session.restore_options()
         for f in backup.iterdir():
             if f.is_file():
                 shutil.copy2(f, env.SAVE_DIR / f.name)

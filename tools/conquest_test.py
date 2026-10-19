@@ -443,7 +443,7 @@ def sail(c, target, route):
         if q is not None and q["type"] == 2:                 # arrival already started the siege
             log("sail", f"siege question already posted on arrival: {q}")
             return
-        time.sleep(5)
+        time.sleep(2)                               # poll interval
     raise Stall(f"sail: convoy did not reach town {target['idx']} in 12 min (last town/state {last}); "
                 "check Convoy_MoveToTown's handle argument / game speed")
 
