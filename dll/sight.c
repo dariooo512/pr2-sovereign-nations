@@ -51,7 +51,6 @@
 #define TC __attribute__((thiscall))
 
 #define CONVOY_TABLE     0x00701EE8u   /* {u32 *slots, ?, u16 count} */
-#define LOCAL_PLAYER     0x00701ED0u   /* u32 handle of the local player */
 #define APP_PTR          0x006E58E4u   /* the application singleton */
 #define APP_VIEWCTL      0xF0
 #define VC_SEAMAP        0x4C
@@ -114,7 +113,8 @@ static int is_fleet(const uint8_t *k)
 
 static int is_players(const uint8_t *k)
 {
-    return *(const uint32_t *)(k + K_TYPE) == KT_PLAYER && *(const uint32_t *)(k + K_OWNER) == G_U32(LOCAL_PLAYER);
+    uint32_t h = eng_human_handle();          /* 0 while there is no player: 0x0009FFFF owns nothing */
+    return h && *(const uint32_t *)(k + K_TYPE) == KT_PLAYER && *(const uint32_t *)(k + K_OWNER) == h;
 }
 
 static uint8_t *by_handle(uint32_t h)

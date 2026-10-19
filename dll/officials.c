@@ -116,8 +116,6 @@ void officials_install(void)
 typedef void *(__attribute__((thiscall)) *GetNpc_t)(void *stadt);
 typedef void (__attribute__((thiscall)) *Enter_t)(void *npc);
 typedef int (__attribute__((thiscall)) *RepTier_t)(void *player, int nation);
-#define PLR_BASE   (*(uint8_t **)0x00701EC0)
-#define HUMAN_H    (*(uint32_t *)0x00701ED0)
 
 static const struct { uint32_t getter; uint32_t vt; } k_kinds[] = {
     {0x005C4BB0, VT_TREASURER},          /* 0: treasurer  (World+0xAE4) */
@@ -130,16 +128,17 @@ int officials_dev_probe(int town, int kind, int *state, int *nation, int *tier)
     *state = *nation = *tier = -1;
     if (kind < 0 || kind >= (int)(sizeof k_kinds / sizeof *k_kinds)) return 0;
     uint8_t *t = eng_town_ptr(town);
-    if (!t || !PLR_BASE || !HUMAN_H || (HUMAN_H & 0xFFFF) == 0xFFFF) return 0;
+    uint8_t *player = eng_human_player();             /* NULL during a New Game's pre-simulation */
+    if (!t || !player) return 0;
     uint8_t *npc = ((GetNpc_t)(uintptr_t)k_kinds[kind].getter)(t);
     if (!npc || *(uint32_t *)npc != k_kinds[kind].vt) return 0;
     uint8_t *d = *(uint8_t **)(npc + 0x10);
     uint32_t old_player = *(uint32_t *)(d + 4);
-    *(uint32_t *)(d + 4) = HUMAN_H;                    /* the dialog's player */
+    *(uint32_t *)(d + 4) = eng_human_handle();         /* the dialog's player */
     ((Enter_t)(uintptr_t)(*(uint32_t **)npc)[19])(npc);
     *state = (int)*(uint32_t *)(d + 0xC);
     *nation = d[0x12];
-    *tier = ((RepTier_t)(uintptr_t)GA_REP_TIER)(PLR_BASE + 0x94u * (HUMAN_H & 0xFFFF), d[0x12]);
+    *tier = ((RepTier_t)(uintptr_t)GA_REP_TIER)(player, d[0x12]);
     *(uint32_t *)(d + 4) = old_player;
     log_line("DEV official town %d kind %d: state %d, npc nation %d, vanilla tier %d, serves %d",
              town, kind, *state, *nation, *tier, npc_serves(npc, NULL));

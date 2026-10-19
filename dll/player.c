@@ -3,21 +3,41 @@
 #include "game.h"
 #include "log.h"
 
+/* The CPlayer pool 0x701EBC (research/human_handle_presim.md): +4 the records (stride 0x94),
+   +8 the slot table (u32 per slot, generation tag in its high word), +0xC the capacity (u16). */
 #define PLR_BASE   (*(uint8_t **)0x00701EC0)   /* inline array, stride 0x94 */
-#define HUMAN_H    (*(uint32_t *)0x00701ED0)
+#define PLR_SLOTS  (*(uint8_t **)0x00701EC4)
+#define PLR_CAP    (*(uint16_t *)0x00701EC8)
+#define HUMAN_H    (*(uint32_t *)0x00701ED0)   /* 0x0009FFFF (index 0xFFFF) while there is no player */
 #define SHIP_BASE  (*(uint8_t **)0x00703CD4)   /* inline array, stride 0x28 */
 #define SHIP_CAP   (*(uint16_t *)0x00703CDC)
-enum { P_GOLD = 0x3C, P_REP = 0x54 };
+enum { P_GOLD = 0x3C, P_ALIVE = 0x25, P_REP = 0x54 };
 enum { S_OWNER = 0x14, S_FLAGS = 0x20 };       /* flags: 1 valid, 4 battleship */
 
 typedef void (__attribute__((thiscall)) *AddGold_t)(void *ctr, int amount, int cat);
 #define PR2_AddGold ((AddGold_t)0x0060E570)     /* ret 8; category 9 = scripts */
 
-static uint8_t *human(void)
+/* The human player's CPlayer, or NULL while there is none: before a game, during a New Game's
+   pre-simulation (the handle's index is 0xFFFF for about 90 game days after "new game ready") and
+   after the player is destroyed. The same tests as the engine's own 0x5C29E0, without its throw.
+   Every use of the human player in the DLL goes through here (replog.c, officials.c, sight.c). */
+uint8_t *eng_human_player(void)
 {
-    if (!PLR_BASE || !HUMAN_H || (HUMAN_H & 0xFFFF) == 0xFFFF) return NULL;   /* 0xFFFF: no player yet (New Game pre-simulation) */
-    return PLR_BASE + 0x94u * (HUMAN_H & 0xFFFF);
+    uint8_t *base = PLR_BASE, *slots = PLR_SLOTS;
+    uint32_t h = HUMAN_H;
+    int i = core_player_index(h, PLR_CAP);
+    if (!base || !slots || i < 0 || !core_player_tag_ok(h, *(uint16_t *)(slots + 4u * (unsigned)i + 2)))
+        return NULL;
+    uint8_t *p = base + 0x94u * (unsigned)i;
+    return p[P_ALIVE] ? p : NULL;
 }
+
+uint32_t eng_human_handle(void)
+{
+    return eng_human_player() ? HUMAN_H : 0;
+}
+
+static uint8_t *human(void) { return eng_human_player(); }
 
 int64_t eng_player_gold(void)
 {
@@ -39,11 +59,12 @@ int eng_player_add_gold(int64_t d)
 void eng_player_fleet(uint16_t *ships, uint16_t *warships)
 {
     *ships = *warships = 0;
-    if (!SHIP_BASE || !HUMAN_H) return;
+    uint32_t h = eng_human_handle();          /* not HUMAN_H: 0x0009FFFF is no player, not an owner */
+    if (!SHIP_BASE || !h) return;
     for (unsigned i = 0; i < SHIP_CAP; i++) {
         uint8_t *s = SHIP_BASE + 0x28u * i;
         uint32_t fl = *(uint32_t *)(s + S_FLAGS);
-        if (!(fl & 1) || *(uint32_t *)(s + S_OWNER) != HUMAN_H) continue;
+        if (!(fl & 1) || *(uint32_t *)(s + S_OWNER) != h) continue;
         (*ships)++;
         if (fl & 4) (*warships)++;
     }

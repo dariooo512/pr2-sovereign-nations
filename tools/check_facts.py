@@ -510,6 +510,71 @@ CODE_FACTS = [
     ("QT-shutdown-leave", 0x40A9D3, ["mov ecx, dword ptr [edi + 0x44]", "test ecx, ecx", "je 0x40a9df",
                                      "mov eax, dword ptr [ecx]", "call dword ptr [eax + 0xc]"],
      "[quit_hang.md] app shutdown 0x40A9D0 leaves the current state again: the second Session::Clear"),
+    ("PH-null-handle", 0x41C510, ["mov eax, ecx", "mov dword ptr [eax], 0x9ffff", "ret"],
+     "[human_handle_presim.md 1] the empty player handle: type 9, index 0xFFFF (0x0009FFFF)"),
+    ("PH-static-init", 0x67B8F0, ["mov ecx, 0x701ed0", "call 0x41c510"],
+     "[human_handle_presim.md 1] start-up: the human handle 0x701ED0 begins as 0x0009FFFF"),
+    ("PH-copy-typed", 0x4028F0, ["mov eax, ecx", "mov ecx, dword ptr [esp + 4]", "mov edx, 0x9ffff",
+                                 "mov dword ptr [eax], edx", "mov ecx, dword ptr [ecx]", "xor edx, ecx",
+                                 "test edx, 0x1f0000", "jne 0x40290b", "mov dword ptr [eax], ecx"],
+     "[human_handle_presim.md 1] typed handle copy: type bits 16..20 must be 9, else the empty handle"),
+    ("PH-local-getter", 0x402940, ["push esi", "mov esi, dword ptr [esp + 8]", "push 0x701ed0",
+                                   "mov ecx, esi", "call 0x4028f0"],
+     "[human_handle_presim.md 1] 0x402940 copies the human handle 0x701ED0 (Lua Global_GetPlayer)"),
+    ("PH-validate", 0x5C2A12, ["cmp ax, word ptr [0x701ec8]", "jae 0x5c2a4f", "movzx esi, ax", "push edi",
+                               "mov edi, dword ptr [0x701ec4]", "shr eax, 0x15",
+                               "xor ax, word ptr [edi + esi*4 + 2]", "pop edi", "test eax, 0x7ff",
+                               "jne 0x5c2a4f", "mov eax, dword ptr [0x701ec0]", "imul esi, esi, 0x94",
+                               "add eax, esi", "push ebx", "mov bl, byte ptr [eax + 0x25]", "test bl, bl"],
+     "[human_handle_presim.md 2] CPlayer handle -> record: index < capacity [0x701EC8], generation "
+     "(bits 21..31) = slot tag, alive +0x25; else it throws (eng_human_player does the same tests)"),
+    ("PH-pool-cap", 0x5A7C43, ["mov esi, 0xfffe", "sub esi, edx", "movzx edx, ax", "cmp esi, edx",
+                               "mov word ptr [ebp + 0xe], ax", "jl 0x5a7c5d", "add ecx, eax",
+                               "mov word ptr [ebp + 0xc], cx", "jmp 0x5a7c63",
+                               "mov word ptr [ebp + 0xc], 0xfffe"],
+     "[human_handle_presim.md 2] the player pool grows to at most 0xFFFE slots: index 0xFFFF is never valid"),
+    ("PH-create-if-none", 0x57F3BD, ["call 0x402940", "mov ecx, dword ptr [eax]", "and ecx, 0xffff",
+                                     "add esp, 4", "cmp ecx, 0xffff", "sete al", "test al, al",
+                                     "je 0x57f476"],
+     "[human_handle_presim.md 3] the engine's own 'no player' test: human index == 0xFFFF -> create him"),
+    ("PH-create-call", 0x57F441, ["call 0x5a8530"],
+     "[human_handle_presim.md 3] ... with CAction::DoCreatePlayer 0x5A8530"),
+    ("PH-create-write", 0x5A86F7, ["mov eax, dword ptr [esp + 0x1c]", "mov dword ptr [0x701ed0], eax"],
+     "[human_handle_presim.md 3] DoCreatePlayer stores the new player's handle in 0x701ED0"),
+    ("PH-step-player", 0x51FE00, ["mov ecx, 0x700500", "call 0x57f3a0", "mov eax, 5", "ret"],
+     "[human_handle_presim.md 3] New Game loading step 0x66: create the player (weight 5)"),
+    ("PH-steps-gen", 0x522898, ["mov eax, 0x580c20"],
+     "[human_handle_presim.md 3] loading steps of 0x522800, 1st: 0x580C20 the world generator"),
+    ("PH-steps-gen-id", 0x5228DA, ["push 0xb", "push eax", "push 0x65"],
+     "[human_handle_presim.md 3] ... registered as step 0x65, weight 0xB"),
+    ("PH-steps-presim", 0x52290C, ["mov eax, 0x57f310"],
+     "[human_handle_presim.md 3] 2nd: 0x57F310 the pre-simulation"),
+    ("PH-steps-presim-id", 0x522930, ["push 0x19", "push eax", "push 0x64"],
+     "[human_handle_presim.md 3] ... registered as step 0x64, weight 0x19"),
+    ("PH-steps-player", 0x522955, ["mov eax, 0x51fe00"],
+     "[human_handle_presim.md 3] 3rd: 0x51FE00 create the player"),
+    ("PH-steps-player-id", 0x522977, ["push 5", "push eax", "push 0x66"],
+     "[human_handle_presim.md 3] ... registered as step 0x66, weight 5"),
+    ("PH-gen-done", 0x580E5E, ["mov eax, 0xb"],
+     "[human_handle_presim.md 3] the generator's last state returns 11 (done): PR2Nation's 'new game ready' hook"),
+    ("PH-presim-step", 0x57F33D, ["mov ecx, dword ptr [0x701e80]", "mov eax, dword ptr [0x6e3354]", "push ebx",
+                                  "mov ebx, dword ptr [0x702c14]", "sub ebx, ecx", "cmp eax, ebx",
+                                  "ja 0x57f35d", "pop ebx", "mov eax, 0x19"],
+     "[human_handle_presim.md 3] the pre-simulation step is done once world time - start >= [0x6E3354] ticks"),
+    ("PH-presim-run", 0x57F35E, ["mov byte ptr [esi + 0xe45], 1", "mov edi, 0x20"],
+     "[human_handle_presim.md 3] ... else it runs the world 32 times per call (0x57F050)"),
+    ("PH-presim-pred", 0x57F620, ["mov ecx, dword ptr [0x701e80]", "mov eax, dword ptr [0x702c14]",
+                                  "sub eax, ecx", "cmp eax, dword ptr [0x6e3354]", "sbb eax, eax",
+                                  "neg eax", "ret"],
+     "[human_handle_presim.md 3] 0x57F620: 1 while the game is still in its pre-simulation"),
+    ("PH-dtor-reset", 0x5A9FCD, ["mov edx, dword ptr [0x701ed0]", "and edx, 0x1f0000", "or edx, 0xffff",
+                                 "mov dword ptr [0x701ed0], edx"],
+     "[human_handle_presim.md 4] CPlayer teardown 0x5A9F30: the human handle goes back to index 0xFFFF"),
+    ("PH-load-restore", 0x5A9DB7, ["mov eax, dword ptr [eax]", "and eax, 0xffff", "cmp eax, 0xffff",
+                                   "je 0x5a9de0"],
+     "[human_handle_presim.md 4] CPlayer load 0x5A9B60: a human (+0 == 0) with a real index ..."),
+    ("PH-load-write", 0x5A9DDA, ["mov dword ptr [0x701ed0], edx"],
+     "[human_handle_presim.md 4] ... becomes the human handle again"),
 ]
 
 STRING_FACTS = [
@@ -521,6 +586,7 @@ STRING_FACTS = [
     ("BP-str-set", 0x6860AC, b"Player_SetLicence"),
     ("FL-str-logo", 0x68DB0C, b"0.bmp"),
     ("FL-str-userflag", 0x689970, b"-userflag-"),
+    ("PH-str-create", 0x6A4E88, b"CAction::DoCreatePlayer : received invalid parameters"),
 ]
 
 # (id, va, expected raw bytes, meaning)
@@ -548,6 +614,8 @@ DATA_FACTS = [
      "[game_flow_entry_points.md] ms-per-tick table: 8000, 800, 160, 80, 40, 0, 8"),
     ("VP-viceroy-vtable", 0x688A90, struct.pack("<I", 0x447520),
      "[vanilla_nation5_path.md 1.3] viceroy vtable 0x688A58 slot 14 = 0x447520"),
+    ("PH-presim-len", 0x6E3354, struct.pack("<I", 23040),
+     "[human_handle_presim.md 3] pre-simulation length 23040 ticks = 90 days (256 ticks a day)"),
 ]
 
 # (id, call target, exact list of E8 call sites, meaning)
@@ -581,6 +649,17 @@ CALLER_FACTS = [
      "town creation; nothing revokes a permit except the sale"),
     ("BP-sell-callers", 0x61B770, [0x40FCAA, 0x410823],
      "[building_permit.md] licence sale: Lua Player_SetLicence(.., false) and the master builder"),
+    ("PH-create-callers", 0x5A8530, [0x57F441],
+     "[human_handle_presim.md 3] DoCreatePlayer's only caller is the create-if-none 0x57F3A0"),
+    ("PH-ifnone-callers", 0x57F3A0, [0x51FE05],
+     "[human_handle_presim.md 3] ... whose only caller is loading step 0x66 (0x51FE00)"),
+]
+
+# (id, va, expected number of 4-byte references in .text, meaning)
+REF_COUNT_FACTS = [
+    ("PH-handle-refs", 0x701ED0, 7,
+     "[human_handle_presim.md 1] 0x701ED0 in code: the start-up init, the getter, DoCreatePlayer, "
+     "CPlayer load (2) and teardown (2); nothing else writes it"),
 ]
 
 # (id, call target, expected number of E8 call sites, meaning)
@@ -724,6 +803,10 @@ def main():
     for fid, target, want, meaning in CALLER_FACTS:
         got = img.call_sites(target)
         check(fid, got == want, f"{target:#x} {meaning}", f"got {[hex(c) for c in got]}")
+
+    for fid, va, want, meaning in REF_COUNT_FACTS:
+        got = img.text_refs(va)
+        check(fid, got == want, f"{va:#x} {meaning}", f"got {got}")
 
     for fid, target, want, meaning in CALL_COUNT_FACTS:
         got = len(img.call_sites(target))

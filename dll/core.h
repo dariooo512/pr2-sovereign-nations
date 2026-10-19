@@ -342,4 +342,18 @@ int  core_relation_target(const NationState *s, const World *w, int power, char 
 typedef void (*CoreTraceFn)(const char *line);
 void core_set_trace(CoreTraceFn fn);
 
+/* ---- player handles (research/human_handle_presim.md) ----------------------
+   A CPlayer handle is bits 0..15 the pool index, 16..20 the type (9 = player), 21..31 the slot's
+   generation. The engine's "no player" is the index 0xFFFF: its empty player handle is 0x0009FFFF
+   (0x41C510), which the human handle holds from start-up until a New Game creates the player after
+   its pre-simulation, and again once the human player is destroyed. The engine only takes a handle
+   (0x5C29E0) whose index is below the pool's capacity (at most 0xFFFE) and whose generation matches
+   the slot's tag; the player record must also be alive (+0x25). These are its first two tests:
+   core_player_index returns the pool index, or -1 for no player (0 or 0xFFFF index, wrong type,
+   index out of the pool); core_player_tag_ok compares the generation with the slot's tag word. */
+#define PLAYER_TYPE        9
+#define PLAYER_NO_INDEX    0xFFFFu
+int  core_player_index(uint32_t handle, uint32_t pool_capacity);
+int  core_player_tag_ok(uint32_t handle, uint16_t slot_tag);
+
 #endif

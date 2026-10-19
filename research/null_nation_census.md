@@ -14,7 +14,7 @@ Labels:
 
 ## 0. Answer in one paragraph
 
-All 109 references are bounded, as `tools/check_facts.py` N0-guards says. But "bounded" only
+All 109 references are bounded, as `check_facts.py` N0-guards says. But "bounded" only
 means `n>=4 -> p = 0`.
 
 **60 of the 100 guarded sites then use `p` with no null test.**

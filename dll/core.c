@@ -1884,3 +1884,18 @@ static void petition_month(NationState *s, const World *w, Effects *out)
         return;
     }
 }
+
+/* ---- player handles (core.h) ------------------------------------------------ */
+int core_player_index(uint32_t handle, uint32_t pool_capacity)
+{
+    uint32_t idx = handle & 0xFFFFu;
+    if (handle == 0 || idx == PLAYER_NO_INDEX) return -1;              /* no game / no player yet */
+    if (((handle >> 16) & 0x1Fu) != PLAYER_TYPE) return -1;            /* not a player handle */
+    if (idx >= pool_capacity) return -1;                               /* the engine's cmp ax,[0x701EC8] */
+    return (int)idx;
+}
+
+int core_player_tag_ok(uint32_t handle, uint16_t slot_tag)
+{
+    return (((handle >> 21) ^ slot_tag) & 0x7FFu) == 0;
+}

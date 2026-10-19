@@ -83,7 +83,7 @@ Plain C (per-site detours) and full relocation, option (a), are both worse; see 
 | `GetNation` | `0x417DC9` |
 
   Unrelated classes also have a `+0x9D4` field (`0x450B10 cmp dword ptr [ecx + 0x9d4], 1`, `0x506526`, `0x582980`): HYPOTHESIS, not World.
-- An absolute reference outside the 109 counted by the fact checker: **`0x44C7EB mov eax, dword ptr [0x702b20]`** (= `g_nations[3]`).
+- An absolute reference outside the 109 counted by check_facts: **`0x44C7EB mov eax, dword ptr [0x702b20]`** (= `g_nations[3]`).
 
 ### 1.4 When the objects exist
 - New game: `0x522A60` → generator `0x580C20` (`[0x700500+0x40]` = phase).
@@ -115,7 +115,7 @@ Town nation bytes are restored raw (`0x5C9AF6`).
 
 ## 3. Making index 5 resolve
 
-### 3.1 Site census (109 refs to 0x702B14, re-derived; the fact checker buckets them 100/6/3, mine 99/7/3)
+### 3.1 Site census (109 refs to 0x702B14, re-derived; check_facts buckets them 100/6/3, mine 99/7/3)
 Every guard is `cmp r32, imm8` (`83 F8..FF xx 04`, 3 bytes, imm last). Every load has disp32 at byte offset 3 (99 sites), 2 (7), 1 (2) or 4 (1). All the edits below have the same length. VERIFIED-STATIC (`table.py`, assert on every site). Each guard compares the same register that indexes the load.
 
 | Class | n | Bound raise 4→6 (with nations6[4]=NULL) |
@@ -207,7 +207,7 @@ How the hooks behave:
 
 ## 7. P05 implementation plan (ordered)
 
-1. **the fact checker:** add the VERIFIED facts above (ctor/dtor/size, the 3 writers, the hook-point bytes, `0x44C7EB`, World=`0x702140`, `0x9E4` neighbour, `Save`/`Load` rets).
+1. **check_facts:** add the VERIFIED facts above (ctor/dtor/size, the 3 writers, the hook-point bytes, `0x44C7EB`, World=`0x702140`, `0x9E4` neighbour, `Save`/`Load` rets).
 2. **P05a (lifecycle, no behaviour change):**
    - `player_cnation` (0x170, align 4), `constructed` (dword), `nations6` (0x18, all 0);
    - hooks H1–H4;

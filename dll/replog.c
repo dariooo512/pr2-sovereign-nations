@@ -29,8 +29,6 @@
 #include "hook.h"
 #include "log.h"
 
-#define PLR_BASE   (*(uint8_t **)0x00701EC0)   /* CPlayer array, stride 0x94 */
-#define HUMAN_H    (*(uint32_t *)0x00701ED0)
 #define P_REP      0x54                        /* int32[4], 16.16 */
 #define TEXT_LO    0x00401000u
 #define TEXT_HI    0x0067E455u
@@ -39,11 +37,7 @@
 
 static const char *const k_pow[4] = {"England", "France", "Holland", "Spain"};
 
-static uint8_t *human(void)
-{
-    if (!PLR_BASE || !HUMAN_H || (HUMAN_H & 0xFFFF) == 0xFFFF) return NULL;   /* 0xFFFF: no player yet (New Game pre-simulation) */
-    return PLR_BASE + 0x94u * (HUMAN_H & 0xFFFF);
-}
+static uint8_t *human(void) { return eng_human_player(); }   /* NULL during a New Game's pre-simulation */
 
 static int32_t rep_raw(int p)
 {
@@ -149,9 +143,20 @@ void replog_mod_change(int power, int delta, const char *why)
     g_acc[power].mod++;
 }
 
+/* day ticks without a human player since the world was ready: a New Game pre-simulates about 90
+   days before it creates the player (research/human_handle_presim.md); logged once it exists */
+static int g_days_without_player = -1;
+
 void replog_daily(void)
 {
-    if (!human()) return;
+    if (!human()) {
+        if (g_days_without_player >= 0) g_days_without_player++;
+        return;
+    }
+    if (g_days_without_player > 0)
+        log_line("PLAYER the human player exists (handle %08X) after %d day ticks without one",
+                 (unsigned)eng_human_handle(), g_days_without_player);
+    g_days_without_player = -1;
     for (int p = 0; p < 4; p++) {
         int32_t now = rep_raw(p);
         if (!g_acc[p].init) {
@@ -171,7 +176,7 @@ void replog_daily(void)
     }
 }
 
-void replog_reset(void) { memset(g_acc, 0, sizeof g_acc); }
+void replog_reset(void) { memset(g_acc, 0, sizeof g_acc); g_days_without_player = 0; }
 
 /* ---- sea battles with the nation's fleets ------------------------------------- */
 static uint8_t *convoy_by_handle(uint32_t h)

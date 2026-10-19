@@ -250,7 +250,7 @@ def player_convoys():
     """Handles in the human player's convoy list [S economy_data.md §3]."""
     ph = u32(PLAYER_H)
     base = u32(PLAYERS)
-    if ph is None or not base:
+    if ph is None or not base or (ph & 0xFFFF) == 0xFFFF:   # 0x0009FFFF: no player yet (human_handle_presim.md)
         return []
     sent = u32(base + (ph & 0xFFFF) * 0x94 + 0x2C)
     node, out = (u32(sent) if sent else None), []

@@ -1735,6 +1735,30 @@ static uint32_t run_until_war(NationState *s, World *w, const Config *c, int p, 
     return 0;
 }
 
+/* the New Game crash fix: the human player handle during a New Game's pre-simulation is 0x0009FFFF (index 0xFFFF),
+   not 0; the DLL must see "no player" there and never index the CPlayer pool with 0xFFFF */
+static void test_player_handle(void)
+{
+    printf("player handles (the New Game crash fix, research/human_handle_presim.md)\n");
+    CHECK(core_player_index(0, 16) == -1);                       /* no game */
+    CHECK(core_player_index(0x0009FFFFu, 16) == -1);             /* the pre-simulation value (both machines) */
+    CHECK(core_player_index(0x0009FFFFu, 0xFFFFu) == -1);        /* 0xFFFF is never an index, whatever the pool */
+    CHECK(core_player_index(0xFFE9FFFFu, 0xFFFFu) == -1);        /* any generation with index 0xFFFF */
+    CHECK(core_player_index(0x00090000u, 16) == 0);              /* slot 0, generation 0 */
+    CHECK(core_player_index(0x00290003u, 16) == 3);              /* generation 1 */
+    CHECK(core_player_index(0x0009000Fu, 16) == 15);
+    CHECK(core_player_index(0x00090010u, 16) == -1);             /* beyond the pool's capacity */
+    CHECK(core_player_index(0x00090003u, 0) == -1);              /* no pool */
+    CHECK(core_player_index(0x00010003u, 16) == -1);             /* a town handle (type 1) */
+    CHECK(core_player_index(0x000A0003u, 16) == -1);             /* type 10 */
+    CHECK(core_player_tag_ok(0x00090003u, 0x0000));
+    CHECK(core_player_tag_ok(0x00290003u, 0x0001));
+    CHECK(!core_player_tag_ok(0x00290003u, 0x0002));             /* a reused slot: stale handle */
+    CHECK(core_player_tag_ok(0xFFE90003u, 0x07FF));
+    CHECK(core_player_tag_ok(0xFFE90003u, 0xFFFF));              /* only 11 bits are compared */
+    CHECK(!core_player_tag_ok(0xFFE90003u, 0x07FE));
+}
+
 static void test_war_warning(void)
 {
     printf("WAR-01 a power at peace warns first and declares war a month later at the earliest\n");
@@ -1866,6 +1890,7 @@ int main(void)
     test_ledger();
     test_no_convoys();
     test_war_warning();
+    test_player_handle();
     printf("\n%d passed, %d failed\n", g_pass, g_fail);
     return g_fail;
 }

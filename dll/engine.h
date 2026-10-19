@@ -20,6 +20,9 @@ int  eng_town_set_permit(int idx, int on);                   /* grant (1) / take
 void towns_install(void);                                    /* hooks (master builder permit value) */
 
 /* player */
+uint8_t *eng_human_player(void);                            /* CPlayer*, NULL while there is no player
+                                                               (New Game pre-simulation: handle 0x0009FFFF) */
+uint32_t eng_human_handle(void);                            /* its handle, 0 while there is no player */
 int64_t eng_player_gold(void);
 int  eng_player_add_gold(int64_t delta);                    /* 0 if refused (insufficient) */
 void eng_player_fleet(uint16_t *ships, uint16_t *warships);

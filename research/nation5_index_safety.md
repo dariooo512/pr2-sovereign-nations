@@ -235,10 +235,10 @@ Each of these is a one-byte patch.
   survives. The display byte is read when the save version is ≥ 0x3F4
   (`0x5C9B02 cmp esi,0x3f4; …; jb 0x5C9B26`); older saves fall back to `nation & 3`.
 
-## Facts ready for the fact checker (all verified PASS)
+## check_facts.py-ready facts (all verified PASS)
 
 Format: `(id, va, [instructions])`. Each instruction string is
-`f"{mnemonic} {op_str}".strip()`, the same as in `tools/check_facts.py`. So a bare `ret` is `"ret"`
+`f"{mnemonic} {op_str}".strip()`, the same as in `check_facts.py`. So a bare `ret` is `"ret"`
 and `cdq` is `"cdq"`.
 
 ```python
