@@ -130,7 +130,7 @@ int officials_dev_probe(int town, int kind, int *state, int *nation, int *tier)
     *state = *nation = *tier = -1;
     if (kind < 0 || kind >= (int)(sizeof k_kinds / sizeof *k_kinds)) return 0;
     uint8_t *t = eng_town_ptr(town);
-    if (!t || !PLR_BASE || !HUMAN_H) return 0;
+    if (!t || !PLR_BASE || !HUMAN_H || (HUMAN_H & 0xFFFF) == 0xFFFF) return 0;
     uint8_t *npc = ((GetNpc_t)(uintptr_t)k_kinds[kind].getter)(t);
     if (!npc || *(uint32_t *)npc != k_kinds[kind].vt) return 0;
     uint8_t *d = *(uint8_t **)(npc + 0x10);

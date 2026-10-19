@@ -41,7 +41,7 @@ static const char *const k_pow[4] = {"England", "France", "Holland", "Spain"};
 
 static uint8_t *human(void)
 {
-    if (!PLR_BASE || !HUMAN_H) return NULL;
+    if (!PLR_BASE || !HUMAN_H || (HUMAN_H & 0xFFFF) == 0xFFFF) return NULL;   /* 0xFFFF: no player yet (New Game pre-simulation) */
     return PLR_BASE + 0x94u * (HUMAN_H & 0xFFFF);
 }
 
