@@ -34,6 +34,12 @@ Each tab looks like the game window it resembles:
 | Government (crown) | the new-game settings' value selector | the form in force and the reform cooldown; the arrows browse the five forms with their strengths and weaknesses | *Adopt*, then *Confirm reform* (costs 10 stability, once per 25 months) |
 | Navy and defence (ship) | the game's *Convoy list* | *Fleets*: one row per fleet (ship symbol, its order, in port / at sea / in battle, ships, sailors). Click a fleet: where it is and where it is heading. *Naval command*: the standing order, fleets in service, costs and plunder. *Town defence*: soldiers, cannon towers, towers paid by the treasury and recruits on the way per member town | *Next order* / *Next target* and the eye (*Go to*) for the selected fleet; the arrows change the standing order, *Commission*, *Pay off one*; *Recruit* (20,000) and *Build tower* (50,000) for the selected town; the third button switches between the three |
 
+![The nation button](docs/screenshots/topbar.jpg)
+![Overview](docs/screenshots/panel_overview.jpg)
+![Treasury](docs/screenshots/panel_treasury.jpg)
+![Towns](docs/screenshots/panel_towns.jpg)
+![Government](docs/screenshots/panel_government.jpg)
+![Navy and defence](docs/screenshots/panel_navy.jpg)
 
 Hover over a button, a column head or a row's symbol to see what it means. The result of every action appears in green (done) or red (not possible, with the reason) on the page. A withdrawal, a declaration of war and a reform ask first: the buttons change to the answer (*Take it* / *Cancel*, *Declare war* / *Cancel*, *Confirm reform*).
 
@@ -59,6 +65,8 @@ When you found the nation, the capital leaves its old power and becomes nation-o
 
 **Your flag.** Pick one of 100 historical, pirate and Caribbean flags with the arrows beside the flag on the founding card; its number and name are shown under it, and the arrows wrap around from the last flag to the first. Browse them all side by side in the Flag Locker page (`art/flag_locker.html`). The nation's flag is separate from your own flag (the logo you chose at the start of the game). The nation's flag flies on the nation's towns (header bar, town and battle dialogs, the town marker on the sea map) and on its fleets (sails and mast flags in port, their marker on the sea map, convoy lists and the info bar). Your own convoys keep your own flag everywhere, in port and at sea, and the player panel keeps your logo. A ship keeps its flag when it enters or leaves port and after saving and loading. The flagpoles on buildings inside towns still show the former power's flag. In a save from an older version your own logo comes back if the game still has it; otherwise the logo saved in it stays.
 
+![The founding page](docs/screenshots/found_page.jpg)
+![Just founded](docs/screenshots/found_done.jpg)
 
 You can found only one nation per game.
 
