@@ -42,6 +42,8 @@ original/
 game/
 saves/
 screenshots/
+# ... except the README's chosen screenshots
+!docs/screenshots/
 
 # Logs, dev switches and console files of test runs
 *.log

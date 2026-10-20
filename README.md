@@ -26,6 +26,16 @@ The full list is in [`FEATURES.md`](FEATURES.md), the rules in [`PLAYER_GUIDE.md
 the history in [`CHANGELOG.md`](CHANGELOG.md) and the design in
 [`port_royale_2_sovereign_nations_spec.md`](port_royale_2_sovereign_nations_spec.md).
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Found a Nation](docs/screenshots/found_page.jpg) **Founding:** form of state, name and flag of the new nation. | ![Just founded](docs/screenshots/found_done.jpg) **Just founded:** the panel opens on the Overview. |
+| ![Overview](docs/screenshots/panel_overview.jpg) **Overview:** the nation next to the four powers, its wars and what needs attention. | ![Treasury](docs/screenshots/panel_treasury.jpg) **Treasury:** 13 categories, last month and the forecast, in the look of the Balance page. |
+| ![Towns](docs/screenshots/panel_towns.jpg) **Towns:** inhabitants, loyalty, tax and garrison per town; towns for sale. | ![Diplomacy](docs/screenshots/diplomacy_war_threat.jpg) **Diplomacy:** treaty, relation and mood per power. Spain threatens war, and an English war fleet has put to sea. |
+| ![Government](docs/screenshots/panel_government.jpg) **Government:** five forms, each with its strengths and weaknesses. | ![Navy and defence](docs/screenshots/panel_navy.jpg) **Navy and defence:** the national fleets and their orders. |
+| ![A national fleet at sea](docs/screenshots/nation_fleet_patrolling.jpg) **A national fleet on patrol** off the capital, under the nation's flag. | ![The nation button](docs/screenshots/topbar.jpg) **The nation button** in the top bar opens the panel (Ctrl+N). |
+
 ## Install it (players)
 
 You need Port Royale 2 from Steam (1.1.2.3, the version Steam sells) on Windows 10 or 11.
@@ -150,7 +160,7 @@ in your Steam folder. The modding kit's *docs/techniques/07-testing.md* explains
 | `data/` | build output of `tools/build_data.py` (only its README is in git) |
 | `research/` | the reverse-engineering notes behind the mod, by topic |
 | `tools/` | builds, the release, the test tools |
-| `docs/` | the banner and the social preview image |
+| `docs/` | the banner, the social preview image and the screenshots (`docs/screenshots/`) |
 
 ## The modding kit
 
