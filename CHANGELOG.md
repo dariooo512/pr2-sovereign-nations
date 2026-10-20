@@ -1,8 +1,8 @@
 # Changelog — Port Royale 2: Sovereign Nations
 
-Versions are named by date and build: `vYYYY.MM.DD-<build>`. The package's `VERSION.txt` says which one you have.
+Releases are numbered from v1.0.0, the first public release; the test builds before it were named by date and build (`vYYYY.MM.DD-<build>`). The package's `VERSION.txt` says which one you have.
 
-## Unreleased
+## v1.0.0 (20 Oct 2026): the first public release
 **One loader for several mods**
 - The loader (`version.dll`) and the setup are now the modding kit's, the same for every mod made with the kit. The loader reads every mod's patch data (`*.patches`) next to the game, so Sovereign Nations can be installed together with other kit mods; if two mods change the same part of the game, it starts the game with the first one only and says why in `PR2Loader.log`. Each mod's line in `PR2Loader.log` now names the mod.
 - Installing this version over an earlier one replaces the old loader with the new one and keeps your installation as it is (`PR2Nation.patches` stays). Uninstalling a mod leaves the loader in place while another mod still uses it; the last one removes it, and the game folder is again exactly as before.

@@ -2,6 +2,7 @@
   "_comment": "What Sovereign Nations' release needs; read by the modding kit's tools/release (build_release.py, export_patches.py). Keys: pr2-modkit/tools/release/install_json.py.",
   "name": "Sovereign Nations",
   "id": "SovereignNations",
+  "version": "v1.0.0",
   "dll": "_build/dll/PR2Nation.dll",
   "data_dir": "data",
   "patch_data": "_build/loader/PR2Nation.patches",
