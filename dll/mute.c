@@ -1,4 +1,4 @@
-/* Silence in the test install: while PR2Nation.dev sits next to the exe (tools/env.py puts it
+/* Silence in the test install: while PR2Nation.dev sits next to the exe (the test suites put it
  * there; the player package never has it), the game's own audio session is muted through the
  * Windows Core Audio per-application volume (the volume mixer's mute for this process), so
  * test runs make no sound. The game's own volume settings (options.dat) stay untouched.

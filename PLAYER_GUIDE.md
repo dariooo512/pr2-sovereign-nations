@@ -206,8 +206,8 @@ Nation state is saved inside the normal `.pr2` save file and restored when you l
 
 ## Scripting and console (advanced)
 
-The whole feature is exposed to the game's Lua as `Nation_*` functions; see the header of [dll/api.c](dll/api.c). While the game runs, you can execute Lua by writing to `PR2Nation.cmd`:
+The whole feature is exposed to the game's Lua as `Nation_*` functions; see the header of [dll/api.c](dll/api.c). While the game runs in a test install with `PR2Nation.dev` next to the exe (dev mode), you can execute Lua by writing to `PR2Nation.cmd`, for example with the modding kit's console (https://github.com/dariooo512/pr2-modkit, setting `PR2_TEST_ENV` for the game folder):
 
-    python tools/console.py "Nation_Log('info', Nation_GetInfo())"
+    python pr2-modkit/tools/test/console.py --mod PR2Nation -e "Nation_Log('info', Nation_GetInfo())"
 
 The log is `PR2Nation.log`, next to the exe. It records every change of a power's relation (`REL`) and of your reputation (`REP`) with its cause, every war decision of a power (`AI`), and every sea battle of a national fleet (`BATTLE`), so a war can always be traced back.

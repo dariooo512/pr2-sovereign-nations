@@ -21,12 +21,12 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "tools"))
 sys.path.insert(0, str(HERE))
+from sn_paths import WORKDIR  # noqa: E402  (first: puts the kit's tools on sys.path)
 from screen_dump import Screen  # noqa: E402
-from sn_paths import WORKDIR  # noqa: E402
 from make_treasury import anim_sizes  # noqa: E402
 from make_towns import CELLS as TOWN_CELLS  # noqa: E402
 
-SCRIPTS = WORKDIR / "arcd" / "scripts"      # vanilla screens (setting SN_WORKDIR)
+SCRIPTS = WORKDIR / "arcd" / "scripts"      # vanilla screens (setting PR2_WORKDIR)
 OUT = HERE.parent / "data" / "scripts" / "FNN_NAVY_800x600.screen"
 ROW_OUT = HERE.parent / "data" / "scripts" / "FNN_FLEET_ROW_800x600.screen"
 ROW_W, ROW_H = 370, 55

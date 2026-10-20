@@ -4,6 +4,12 @@ Result: **the in-memory route works** for the game build the mod is made for, an
 release is the setup program plus the mod files; no game file is shipped, `PR2.exe` and the saves
 are never changed. Status of each acceptance point at the end.
 
+> Since then (the loader and release tools for other mods) the loader, the patch export and the setup are the modding kit's, one for
+> every mod: `pr2-modkit/loader/` (it reads every `*.patches` next to the exe) and
+> `pr2-modkit/tools/release/` (`export_patches.py`, `mod_setup.py`, `build_release.py`, driven by
+> this mod's `install.json`). The design below is unchanged in them; file names below are the
+> ones of the time.
+
 ## 1. The loader: `version.dll` in the game folder
 
 `PR2.exe` (1.1.2.3, Steam: SteamStub v2.1) imports `VERSION.dll` (`GetFileVersionInfoA`,

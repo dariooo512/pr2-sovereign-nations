@@ -62,6 +62,16 @@ You need:
   to freeze the setup into an exe);
 - the 32-bit MinGW-w64 GCC from [MSYS2](https://www.msys2.org/) (`pacman -S mingw-w64-i686-gcc`);
   the build scripts look in `C:\msys64\mingw32\bin`, or set `MINGW32_BIN`;
+- **the modding kit**, cloned next to this repository (the mod's test and build tools are the
+  kit's, not copies of them):
+
+  ```
+  git clone https://github.com/dariooo512/pr2-sovereign-nations
+  git clone https://github.com/dariooo512/pr2-modkit
+  ```
+
+  The tools find the kit as the folder `pr2-modkit` next to this repository; a checkout
+  somewhere else is found through the setting `PR2_KIT`. Without the kit they stop and say so;
 - your own Port Royale 2 for the steps that need game files.
 
 ### 1. The DLL, the loader and the unit tests (no game needed)
@@ -80,12 +90,12 @@ them from yours:
 
 1. Extract the game's `.cpr` archives (`pr2_arcd.cpr`, `pr2_arcs.cpr`, ...) into one folder,
    with each archive in its own subfolder (`arcd/`, `arcs/`, ...). The modding kit's `.cpr`
-   extractor does this; see [the modding kit](https://github.com/dariooo512/pr2-modkit),
-   *docs/techniques/01-game-files.md*.
-2. Point `SN_WORKDIR` at that folder and run the data build:
+   extractor does this (its *docs/getting-started.md*, step 6, puts them in the kit's
+   `_game/extracted`, where this repository's tools look by default).
+2. If they are somewhere else, point `PR2_WORKDIR` at that folder; then run the data build:
 
    ```
-   set SN_WORKDIR=D:\pr2-extracted
+   set PR2_WORKDIR=D:\pr2-extracted
    python tools/build_data.py
    ```
 
@@ -104,57 +114,67 @@ file is built against the DRM-free image of the Steam `PR2.exe` 1.1.2.3 (sha256
 *docs/techniques/03-the-exe.md* says how):
 
 ```
-set SN_BASE_EXE=D:\pr2\PR2.exe.unpacked.exe
+set PR2_BASE_EXE=D:\pr2\PR2.exe.unpacked.exe
 python tools/export_patches.py --check    # -> _build/loader/PR2Nation.patches
 python tools/release.py                    # -> dist/release/SovereignNations_v<date>-<commit>.zip
 ```
 
-`release.py` builds the DLL, the loader and the patch data, freezes the setup with PyInstaller
-when it is installed, and refuses to build if any release file is byte-equal to a file of the
-game (it compares with a test install and with `SN_WORKDIR`; `--no-check` skips that).
+`release.py` runs the modding kit's release builder (`tools/release/build_release.py`) with this
+repository's `install.json`: it builds the DLL, the kit's loader and the patch data, freezes the
+kit's setup with PyInstaller when it is installed (with `installer/header.png` in its window), and
+refuses to build if any release file is byte-equal to a file of the game (it compares with a test
+install and with `PR2_WORKDIR`; `--no-check` skips that).
 
 ### Settings
 
-The tools find what is not part of the mod through environment variables
-([`tools/sn_paths.py`](tools/sn_paths.py)):
+The settings are the modding kit's (its `tools/kit_paths.py`), so the kit and this repository
+need one set of them. [`tools/sn_paths.py`](tools/sn_paths.py) finds the kit and gives the mod's
+defaults; run it to print every setting, where it comes from and whether the path exists:
 
-| Variable | What | Default |
+| Variable | What | Default here |
 |---|---|---|
-| `SN_WORKDIR` | the game's archives, extracted | `../reverse-engineering/_workdir` |
-| `SN_BASE_EXE` | the DRM-free `PR2.exe` 1.1.2.3 | `../reverse-engineering/_re/PR2.exe.unpacked.exe` |
-| `SN_PRISTINE` | an unmodified copy of the game folder | `../original-game/original` |
-| `SN_TEST_ENV` | the disposable test install (`tools/env.py setup` copies it from `SN_PRISTINE`) | `%USERPROFILE%\PR2-nation-env` |
-| `SN_TEST_LOCK` | the lock that test runs share | `%USERPROFILE%\PR2-nation-env.lock` |
-| `SN_SAVE_DIR` | the game's Save folder | `Documents\Ascaron Entertainment\Port Royale 2\Save` |
+| `PR2_KIT` | the modding kit's checkout | `../pr2-modkit` |
+| `PR2_WORKDIR` | the game's archives, extracted | the kit's `_game/extracted` |
+| `PR2_BASE_EXE` | the DRM-free `PR2.exe` 1.1.2.3 | the kit's `_game/PR2.exe.unpacked.exe` |
+| `PR2_PRISTINE` | an unmodified copy of the game folder | the kit's `_game/original` |
+| `PR2_TEST_ENV` | the disposable test install (`python tools/sn_env.py setup` copies it from `PR2_PRISTINE`) | `%USERPROFILE%\PR2-nation-env` |
+| `PR2_TEST_LOCK` | the lock that test runs share | the test install's path + `.lock` |
+| `PR2_SAVE_DIR` | the game's Save folder | `Documents\Ascaron Entertainment\Port Royale 2\Save` |
+| `PR2_BUILD`, `PR2_BACKUP_DIR` | build output and test logs; the Save-folder backups of the test runs | `_build/`, `_backup/` |
 | `MINGW32_BIN` | the 32-bit MinGW GCC | `C:\msys64\mingw32\bin` |
 
-The `../` defaults are the layout of the workspace the mod was made in (this repository next
-to the reverse-engineering folders); in a plain clone, set the variables. If you followed the
-modding kit's *docs/getting-started.md*, its `_game` folder already has everything:
+If you followed the kit's *docs/getting-started.md*, its `_game` folder already has your game
+files and nothing needs to be set:
 
 ```
-set SN_WORKDIR=<kit>\_game\extracted
-set SN_BASE_EXE=<kit>\_game\PR2.exe.unpacked.exe
-set SN_PRISTINE=<kit>\_game\original
-python tools/sn_paths.py      # prints every setting, where it comes from and whether it exists
+python tools/sn_paths.py      # PR2_KIT, then every setting, where it comes from and whether it exists
 ```
+
+The older names `SN_WORKDIR`, `SN_BASE_EXE`, `SN_PRISTINE`, `SN_TEST_ENV`, `SN_TEST_LOCK` and
+`SN_SAVE_DIR` still work for now (each prints a one-line note); the `PR2_` name wins.
 
 ### Testing in the game
 
-`tools/` also has the in-game test tools: a disposable test install (`env.py`), a debugger host
-(`gamehost.py`), background input and screenshots (`session.py`, `screen.py`), a Lua console,
-the feature suite (`feature_suite.py`), scenario saves (`scenarios.py`), a real-battle conquest
-test (`conquest_test.py`) and per-feature probes. They run the game in the test install, never
-in your Steam folder. The modding kit's *docs/techniques/07-testing.md* explains the method.
+The in-game test tools are the kit's (`tools/test/`: the test install `env.py`, the debugger
+host `gamehost.py`, sessions with background input `session.py`, screenshots `screen.py`, the Lua
+console `console.py`, hang dumps, keep-awake, mute); its *docs/techniques/07-testing.md* explains
+them. This repository adds what is the mod's: `tools/sn_env.py` (the kit's `env.py` with the
+mod's files, `deploy BUILT` installs a patched build as `PR2_nation.exe` with the DLL),
+`tools/sn_session.py` (the kit's `session.py` waiting for the DLL's log lines, new games at
+Margarita), `tools/sn_patch.py` (the kit's `pe_patch.py` with the mod's `.nation` section), and
+the suites: the feature suite (`feature_suite.py`), scenario saves (`scenarios.py`), a
+real-battle conquest test (`conquest_test.py`) and per-feature probes. They run the game in the
+test install, never in your Steam folder.
 
 ## Repository layout
 
 | Folder | What |
 |---|---|
 | `dll/` | `PR2Nation.dll`, the mod (C, about 10,000 lines) and its unit tests (`dll/tests/`) |
-| `patches/` | the seven exe patch modules (P01-P07), built with `tools/pe_patch.py` |
-| `loader/` | `version.dll`, the in-memory loader, and its patch data format (`loader/README.md`) |
-| `installer/` | the player setup (`sn_setup.py`, a Tk window) |
+| `patches/` | the seven exe patch modules (P01-P07), built with `tools/sn_patch.py` (the kit's `pe_patch.py`) |
+| `loader/` | builds the modding kit's loader, `version.dll` (one for every mod; its source and the patch data format are in the kit's `loader/`) |
+| `installer/` | the setup's image and HOW TO INSTALL text; the setup is the kit's `tools/release/mod_setup.py` |
+| `install.json` | what the release needs, read by the kit's release tools |
 | `art/` | the screen generators, the flag sources with their credits, the main image |
 | `lua/` | the mod's mission script (`include_body.ini`) |
 | `data/` | build output of `tools/build_data.py` (only its README is in git) |

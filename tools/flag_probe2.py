@@ -16,8 +16,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import env  # noqa: E402
-import session  # noqa: E402
+import sn_env as env  # noqa: E402
+import sn_session as session  # noqa: E402
 import flag_probe as P  # noqa: E402
 
 CLICK = tuple(int(v) for v in sys.argv[1].split(",")) if len(sys.argv) > 1 else (1195, 690)

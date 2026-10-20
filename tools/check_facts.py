@@ -4,7 +4,7 @@ Each fact is an address plus the instructions (or data) we expect there in the
 pinned build. Run this before trusting research/; a FAIL means either the
 exe changed or a doc claim is wrong -- fix the doc, don't ignore the failure.
 
-    python tools/check_facts.py [path/to/PR2.exe.unpacked.exe]      (default: setting SN_BASE_EXE)
+    python tools/check_facts.py [path/to/PR2.exe.unpacked.exe]      (default: setting PR2_BASE_EXE)
 
 Exit code 0 = all facts hold.
 """
@@ -18,7 +18,7 @@ import pefile
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sn_paths import BASE_EXE as DEFAULT_EXE  # noqa: E402  (setting SN_BASE_EXE)
+from sn_paths import BASE_EXE as DEFAULT_EXE  # noqa: E402  (setting PR2_BASE_EXE)
 # Steam 1.1.2.3, SteamStub removed with Steamless (the modding kit's docs/getting-started.md step 5).
 PINNED_SHA256 = "9c9250bc2b7a8068f658c0d9935bf2e7d8f9865bc31b875d9fb3b220d01cf448"
 
@@ -737,7 +737,7 @@ def classify_nation_refs(img, md):
 def main():
     exe = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_EXE
     if not exe.exists():
-        raise SystemExit(f"no DRM-free exe at {exe}: set SN_BASE_EXE or pass the path (python tools/sn_paths.py)")
+        raise SystemExit(f"no DRM-free exe at {exe}: set PR2_BASE_EXE or pass the path (python tools/sn_paths.py)")
     img = Image(exe)
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
     results = []

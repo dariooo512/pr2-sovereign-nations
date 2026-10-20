@@ -1,13 +1,18 @@
-"""Tests of the setup program (installer/sn_setup.py) on throw-away copies of a game folder.
+"""Tests of the setup program (the kit's tools/release/mod_setup.py with Sovereign Nations' release)
+on throw-away copies of a game folder.
 
-    python tools/test_installer.py [--release DIR]
+    python tools/test_installer.py [--release DIR] [--old-release DIR]
 
 Never touches a real install: each test builds a small fake game folder in _build/installer_test
 with a copy of the test install's PR2.exe (the Steam build) and a few vanilla files, then runs the
 setup's install / update / repair / uninstall and compares the folder byte for byte.
+INS-10 is the migration of an install made by an earlier release's own setup (the first loader,
+which reads only PR2Nation.patches): --old-release, default the oldest release in dist/release that
+still has its setup as a script (sn_setup.py); skipped when there is none.
 """
 import argparse
 import hashlib
+import importlib.util
 import json
 import shutil
 import sys
@@ -15,8 +20,11 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import env  # noqa: E402
+import sn_paths  # noqa: E402
+import release  # noqa: E402
 
+MOD = sn_paths.MOD
+ENV = sn_paths.TEST_ENV
 results = []
 
 
@@ -34,9 +42,9 @@ def fake_game(root: Path, loose_include=False, towns=False) -> Path:
     g = root / "Game"
     shutil.rmtree(root, ignore_errors=True)
     (g / "scripts").mkdir(parents=True)
-    shutil.copy2(env.ENV / "PR2.exe", g / "PR2.exe")
+    shutil.copy2(ENV / "PR2.exe", g / "PR2.exe")
     for n in ("A2dLib-2.20A.dll", "lua.dll"):
-        shutil.copy2(env.ENV / n, g / n)
+        shutil.copy2(ENV / n, g / n)
     (g / "scripts" / "SOMETHING_800x600.screen").write_bytes(b"vanilla screen")
     if loose_include:
         (g / "lua" / "config" / "default").mkdir(parents=True)
@@ -47,32 +55,49 @@ def fake_game(root: Path, loose_include=False, towns=False) -> Path:
     return g
 
 
+def releases() -> list[Path]:
+    rels = sorted((MOD / "dist" / "release").glob("SovereignNations_v*/mod/MANIFEST.json"), key=lambda p: p.stat().st_mtime)
+    return [r.parent.parent for r in rels]
+
+
 def latest_release() -> Path:
-    rels = sorted((env.HERE / "dist" / "release").glob("SovereignNations_v*/mod/MANIFEST.json"), key=lambda p: p.stat().st_mtime)
-    if not rels:
-        raise SystemExit("no release: python tools/release.py")
-    return rels[-1].parent.parent
+    new = [r for r in releases() if json.loads((r / "mod" / "MANIFEST.json").read_text()).get("format") == 2]
+    if not new:
+        raise SystemExit("no release made with the kit's builder: python tools/release.py")
+    return new[-1]
+
+
+def old_setup(rel: Path):
+    """An earlier release's own setup script, its package dir pointed at that release."""
+    spec = importlib.util.spec_from_file_location("old_sn_setup", rel / "sn_setup.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    m.package_dir = lambda: rel / "mod"
+    return m
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--release", type=Path)
+    ap.add_argument("--old-release", type=Path)
     a = ap.parse_args()
     rel = a.release or latest_release()
-    sys.path.insert(0, str(env.HERE / "installer"))
-    import sn_setup as S
+    release.kit_release()
+    import mod_setup as S                                   # the kit's setup
     S.package_dir = lambda: rel / "mod"                     # the release under test
+    pkg = S.Package()
     man = json.loads((rel / "mod" / "MANIFEST.json").read_text())
-    root = env.HERE / "_build" / "installer_test"
+    root = MOD / "_build" / "installer_test"
     log = []
-    if not (env.ENV / "PR2.exe").exists():
-        raise SystemExit(f"no test install at {env.ENV}: run python tools/env.py setup (setting SN_TEST_ENV)")
+    if not (ENV / "PR2.exe").exists():
+        raise SystemExit(f"no test install at {ENV}: set PR2_TEST_ENV (tools/sn_paths.py)")
+    print(f"release {rel.name}, setup {Path(S.__file__)}")
 
     g = fake_game(root)
     before = tree(g)
     exe0 = hashlib.sha256((g / "PR2.exe").read_bytes()).hexdigest()
     S.install(g, log=log.append)
-    st = json.loads((g / S.STATE).read_text())
+    st = json.loads((g / pkg.state).read_text())
     ok = all((g / r).exists() for r in man["files"]) and len(st["files"]) == len(man["files"])
     record("INS-01", ok, f"install: {len(st['files'])} files, version {st['version']}, game {st['game']}")
     record("INS-02", hashlib.sha256((g / "PR2.exe").read_bytes()).hexdigest() == exe0, "PR2.exe unchanged after install")
@@ -82,13 +107,13 @@ def main():
     record("INS-03", n == 2 and "every file is in order" in (S.repair(g, log=log.append) == 0 and "every file is in order" or ""),
            f"repair put back {n} files, then nothing to do")
     # update: an older install with one file the new version no longer has
-    st = json.loads((g / S.STATE).read_text())
+    st = json.loads((g / pkg.state).read_text())
     (g / "obsolete.txt").write_text("old version's file")
     st["files"]["obsolete.txt"] = {"replaced": False, "sha256": hashlib.sha256(b"old version's file").hexdigest()}
     st["version"] = "v2000.01.01-old"
-    (g / S.STATE).write_text(json.dumps(st))
+    (g / pkg.state).write_text(json.dumps(st))
     S.install(g, log=log.append)
-    st = json.loads((g / S.STATE).read_text())
+    st = json.loads((g / pkg.state).read_text())
     record("INS-04", not (g / "obsolete.txt").exists() and st["version"] == man["version"],
            f"update from v2000.01.01-old -> {st['version']}, the old version's extra file removed")
     (g / "PR2Loader.log").write_text("written while playing")
@@ -124,6 +149,29 @@ def main():
 
     found = S.find_game()
     record("INS-09", True, f"Steam discovery (read-only): {found or 'not found'}")
+
+    # INS-10: an install made by an earlier release's setup (first loader, old install record)
+    olds = [a.old_release] if a.old_release else [r for r in releases() if (r / "sn_setup.py").exists()]
+    if not olds:
+        record("INS-10", True, "migration: skipped (no earlier release with its setup script in dist/release)")
+    else:
+        old = old_setup(olds[0])
+        g = fake_game(root)
+        before = tree(g)
+        old.install(g, log=log.append)
+        v_old = S.loader_version(g / "version.dll")
+        S.install(g, log=log.append)                        # the new setup over the old install
+        st = json.loads((g / pkg.state).read_text())
+        e = st["files"].get("version.dll", {})
+        v_new = S.loader_version(g / "version.dll")
+        patches_ok = (g / "PR2Nation.patches").read_text().startswith("PR2-PATCHDATA 2")
+        status_ok = "changed or missing" not in S.status(g)
+        S.uninstall(g, log=log.append)
+        after = tree(g)
+        record("INS-10", v_old == 1 and v_new == pkg.loader_version and e.get("shared") and not e.get("replaced")
+               and patches_ok and status_ok and not (g / pkg.backup).exists() and after == before,
+               f"migration from {olds[0].name} (loader {v_old}) -> loader {v_new}, PR2Nation.patches kept and "
+               f"updated, record shared={e.get('shared')}; uninstall byte-identical {after == before}")
     shutil.rmtree(root, ignore_errors=True)
     n = sum(ok for _, ok, _ in results)
     print(f"installer tests: {n} pass, {len(results) - n} fail")

@@ -27,8 +27,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import env  # noqa: E402
-import session  # noqa: E402
+import sn_env as env  # noqa: E402
+import sn_session as session  # noqa: E402
 
 PATCHES = sorted((env.HERE / "patches").glob("p0*.py"))
 BUILD = env.HERE / "_build" / "m0" / "PR2_nation.exe"
@@ -120,10 +120,13 @@ def static():
     for t in sorted(HERE.glob("test_*.py")):
         code, tail = run(t)
         record(t.stem, code == 0, tail[0])
+    kit_test = env.sn_paths.KIT_TOOLS / "exe" / "test_pe_patch.py"      # the patch builder is the kit's
+    code, tail = run(kit_test)
+    record("kit test_pe_patch", code == 0, tail[0])
 
 
 def build_and_deploy():
-    args = [HERE / "pe_patch.py", BUILD]
+    args = [HERE / "sn_patch.py", BUILD]
     for p in PATCHES:
         args += ["--patch-module", p]
     code, tail = run(*args)

@@ -34,14 +34,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import env  # noqa: E402
-import session  # noqa: E402
+import sn_env as env  # noqa: E402
+import sn_session as session  # noqa: E402
 import m0_suite as M  # noqa: E402
 import feature_suite as F  # noqa: E402
 import conquest_test as C  # noqa: E402
 import scenarios as S  # noqa: E402
 
-LOCK = env.LOCK                      # the shared test-install lock (setting SN_TEST_LOCK)
+LOCK = env.LOCK                      # the shared test-install lock (setting PR2_TEST_LOCK)
 BASE_SAVE = "FNN 12 - Month end in 2 days"
 OLD_SAVE = "FNN NC1 - Old national convoy"
 CORO = 52

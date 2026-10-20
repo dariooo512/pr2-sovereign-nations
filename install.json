@@ -1,0 +1,49 @@
+{
+  "_comment": "What Sovereign Nations' release needs; read by the modding kit's tools/release (build_release.py, export_patches.py). Keys: pr2-modkit/tools/release/install_json.py.",
+  "name": "Sovereign Nations",
+  "id": "SovereignNations",
+  "dll": "_build/dll/PR2Nation.dll",
+  "data_dir": "data",
+  "patch_data": "_build/loader/PR2Nation.patches",
+  "patches": [
+    "patches/p0*.py"
+  ],
+  "section_name": ".nation",
+  "section_size": "0x1000",
+  "supported_exe_sha256": {
+    "5295c06689147f7565f72510aeb686719cf0ae38aa581a6df3e4d61d0cf76264": "Port Royale 2 1.1.2.3 (Steam)",
+    "9c9250bc2b7a8068f658c0d9935bf2e7d8f9865bc31b875d9fb3b220d01cf448": "Port Royale 2 1.1.2.3 (DRM-free)"
+  },
+  "build": [
+    "dll/build.py"
+  ],
+  "docs": [
+    "FEATURES.md",
+    "CHANGELOG.md",
+    "PLAYER_GUIDE.md",
+    "docs/banner.jpg"
+  ],
+  "logs": [
+    "PR2Nation.log"
+  ],
+  "warn_if_present": [
+    {
+      "glob": "towns/*.tow",
+      "question": "{dir} has {n} loose town files from another mod (the 4x towns mod?). Sovereign Nations is made and tested with the original towns. Install anyway?",
+      "refusal": "another mod's town files are present (use --force to install anyway)"
+    }
+  ],
+  "setup": {
+    "title": "Sovereign Nations setup",
+    "image": "installer/header.png",
+    "dgvoodoo": true
+  },
+  "how_to": "installer/HOW_TO_INSTALL.txt",
+  "how_to_banner": "docs/banner.jpg",
+  "check_ignore": [
+    "PR2_nation.exe",
+    "PR2Nation.*",
+    "nation_flags/*"
+  ],
+  "release_dir": "dist/release"
+}

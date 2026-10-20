@@ -1,0 +1,31 @@
+PORT ROYALE 2 - SOVEREIGN NATIONS {version}
+HOW TO INSTALL
+==============================================
+
+WHAT YOU NEED
+- Port Royale 2 from Steam, installed (version 1.1.2.3, the one Steam sells).
+- Windows 10 or 11.
+
+INSTALL
+1. Extract this zip to any folder (right-click -> Extract All...).
+2. Double-click "Sovereign Nations Setup".
+3. The setup finds your Steam copy of Port Royale 2 by itself (or click Browse and pick the
+   folder that contains PR2.exe). Click "Install / Update".
+4. Start Port Royale 2 from Steam as always. The nation button (a flag) is in the top bar.
+
+The mod does not change PR2.exe or your saves. If Steam updates the game to a build the mod
+does not know, the game simply starts without the mod.
+
+BLACK SCREEN OR HANG ON START (some Intel graphics)
+Run the setup again, tick "Also install dgVoodoo2" and click "Install / Update".
+
+UPDATE
+Run the setup of the new version and click "Install / Update". No need to uninstall first.
+
+UNINSTALL
+Run the setup and click "Uninstall". The game folder is put back exactly as it was; saves stay.
+
+REPAIR
+If a mod file was deleted or changed, run the setup and click "Repair".
+
+Logs, if something goes wrong: PR2Loader.log and PR2Nation.log in the game folder.

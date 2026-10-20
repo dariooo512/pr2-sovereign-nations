@@ -14,10 +14,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "tools"))
+from sn_paths import WORKDIR  # noqa: E402  (first: puts the kit's tools on sys.path)
 from screen_dump import Screen  # noqa: E402
-from sn_paths import WORKDIR  # noqa: E402
 
-SRC = WORKDIR / "arcd" / "scripts" / "TOPMENUBAR_800x600.screen"      # vanilla (setting SN_WORKDIR)
+SRC = WORKDIR / "arcd" / "scripts" / "TOPMENUBAR_800x600.screen"      # vanilla (setting PR2_WORKDIR)
 OUT = HERE.parent / "data" / "scripts" / "TOPMENUBAR_800x600.screen"
 X = 846
 

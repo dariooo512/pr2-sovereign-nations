@@ -16,10 +16,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import console  # noqa: E402
-import env  # noqa: E402
+import sn_env as env  # noqa: E402  (first: finds the kit)
+import console  # noqa: E402  (the kit's tools/test/console.py)
 import m0_suite as M  # noqa: E402
-import session  # noqa: E402
+import sn_session as session  # noqa: E402
 
 BUILD = env.HERE / "_build" / "feature" / "PR2_nation.exe"
 REPORT = env.HERE / ("UI_RESULTS.md" if "--ui-only" in sys.argv else "FEATURE_RESULTS.md")
@@ -80,7 +80,7 @@ def build():
     for cmd in ([HERE.parent / "dll" / "tests" / "run_tests.py"], [HERE.parent / "dll" / "build.py"]):
         code, tail = M.run(*cmd)
         record(Path(cmd[0]).stem, code == 0, tail[0])
-    args = [HERE / "pe_patch.py", BUILD]
+    args = [HERE / "sn_patch.py", BUILD]
     for p in sorted((env.HERE / "patches").glob("p0*.py")):
         args += ["--patch-module", p]
     code, tail = M.run(*args)

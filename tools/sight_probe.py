@@ -24,11 +24,11 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import env  # noqa: E402
-import session  # noqa: E402
+import sn_env as env  # noqa: E402
+import sn_session as session  # noqa: E402
 import feature_suite as F  # noqa: E402
 
-LOCK = env.LOCK                      # the shared test-install lock (setting SN_TEST_LOCK)
+LOCK = env.LOCK                      # the shared test-install lock (setting PR2_TEST_LOCK)
 results = []
 
 

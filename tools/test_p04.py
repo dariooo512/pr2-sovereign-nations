@@ -26,7 +26,7 @@ from capstone import x86 as X
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import pe_patch  # noqa: E402
+import sn_patch as pe_patch  # noqa: E402
 
 PATCHES = TOOLS.parent / "patches"
 OUT = pe_patch.BUILD_DIR / "p04_test" / "PR2_nation.exe"

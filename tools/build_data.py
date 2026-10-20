@@ -15,7 +15,7 @@ everyone builds them from their own Port Royale 2:
   data/nation_flags/flag_NNN.bmp
         the 100 nation flags as game logos (art/make_logos.py, from art/flags_src/).
 
-Needs the game's archives extracted (setting SN_WORKDIR, see tools/sn_paths.py): the folder with
+Needs the game's archives extracted (setting PR2_WORKDIR, see tools/sn_paths.py): the folder with
 arcd/scripts/*.screen and arcs/lua/config/default/include.ini, as reverse-engineering's
 cpr_extract_full.py writes them from the game's .cpr archives.
 """
@@ -55,7 +55,7 @@ def include_ini() -> Path:
 def main():
     missing = [p for p in (WORKDIR / "arcd" / "scripts", VANILLA_INCLUDE) if not p.exists()]
     if missing:
-        raise SystemExit("the game's extracted archives are needed (setting SN_WORKDIR, now "
+        raise SystemExit("the game's extracted archives are needed (setting PR2_WORKDIR, now "
                          f"{WORKDIR}); missing: {', '.join(map(str, missing))}")
     for gen in sorted(ART.glob("make_*.py")):
         if gen.name not in NOT_SCREENS:

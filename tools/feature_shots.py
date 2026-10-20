@@ -17,8 +17,8 @@ import time
 
 from PIL import Image
 
-import env
-import session
+import sn_env as env
+import sn_session as session
 import feature_suite as F
 
 OUT = env.HERE / "docs" / "screenshots"

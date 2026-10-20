@@ -30,7 +30,7 @@ from capstone import x86 as X
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import pe_patch  # noqa: E402
+import sn_patch as pe_patch  # noqa: E402
 
 PATCH_DIR = pe_patch.NATION_DIR / "patches"
 MODULES = ["p01_isatwar_player.py", "p02_userflag_null.py", "p03_display_byte_reads.py",

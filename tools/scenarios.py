@@ -27,8 +27,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import env  # noqa: E402
-import session  # noqa: E402
+import sn_env as env  # noqa: E402
+import sn_session as session  # noqa: E402
 import m0_suite as M  # noqa: E402
 import feature_suite as F  # noqa: E402
 import conquest_test as C  # noqa: E402

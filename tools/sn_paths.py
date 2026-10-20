@@ -1,31 +1,50 @@
-"""Where the mod's tools find things that are not part of the mod: settings with defaults.
+"""Where the mod's tools find the modding kit and everything that is not part of the mod.
 
-Each setting is an environment variable. Unset, it takes the default below, which is the layout
-of the workspace the mod was made in (the mod's folder next to reverse-engineering/ and
-original-game/). In a checkout of the mod on its own, point them at your own copies:
+The test tools (test install, game host, sessions, screenshots, console, patch builder, screen
+files) are the modding kit's, not copies: https://github.com/dariooo512/pr2-modkit. Importing
+this module finds the kit and puts its tool folders (tools/, tools/test/, tools/exe/,
+tools/files/) on sys.path, so `import env`, `import session`, `import pe_patch` ... are the kit's.
+The mod's own wrappers around them are sn_env.py, sn_session.py and sn_patch.py.
 
-  SN_WORKDIR     the game's archives, extracted (arcd/, arcs/ ... with scripts/, lua/, Data/);
-                 the screen generators in art/ and tools/build_data.py read vanilla files there
-  SN_BASE_EXE    PR2.exe 1.1.2.3 with SteamStub removed (sha256 9c9250bc...), the base of the
-                 patch build (tools/pe_patch.py, tools/export_patches.py)
-  SN_PRISTINE    an unmodified copy of the game folder (the test install is copied from it)
-  SN_TEST_ENV    the disposable test install (tools/env.py)
-  SN_TEST_LOCK   the lock folder that test runs share, so only one runs the test install at a time
-  SN_SAVE_DIR    the game's Save folder (default: Documents\\Ascaron Entertainment\\Port Royale 2\\Save,
-                 with Documents where Windows says it is, also when it is redirected)
-  MINGW32_BIN    the bin folder of a 32-bit MinGW-w64 GCC (default: MSYS2's C:\\msys64\\mingw32\\bin)
+Finding the kit (setting PR2_KIT): the folder in PR2_KIT, else a checkout named `pr2-modkit`
+next to this repository (clone both into one folder), else next to the workspace's main checkout.
+
+The settings are the kit's (tools/kit_paths.py in the kit), with the mod's own defaults:
+
+  PR2_WORKDIR     the game's archives, extracted (arcd/, arcs/ ... with scripts/, lua/, Data/);
+                  the screen generators in art/ and tools/build_data.py read vanilla files there
+  PR2_BASE_EXE    PR2.exe 1.1.2.3 with SteamStub removed (sha256 9c9250bc...), the base of the
+                  patch build (sn_patch.py, tools/export_patches.py)
+  PR2_PRISTINE    an unmodified copy of the game folder (the test install is copied from it)
+                  These three default to the workspace the mod was made in when it is there
+                  (../reverse-engineering/_workdir, ../reverse-engineering/_re/, ../original-game/original),
+                  else to the kit's defaults (the kit's _game/ folder, see its docs/getting-started.md).
+  PR2_TEST_ENV    the disposable test install          default %USERPROFILE%\\PR2-nation-env
+  PR2_TEST_LOCK   the lock that test runs share         default the test install's path + ".lock"
+  PR2_SAVE_DIR    the game's Save folder (default: Documents\\Ascaron Entertainment\\Port Royale 2\\Save,
+                  with Documents where Windows says it is, also when it is redirected)
+  PR2_BUILD       where the tools write runs, logs and screenshots   default _build/ of the mod
+  PR2_BACKUP_DIR  where the Save folder backups go                   default _backup/ of the mod
+  MINGW32_BIN     the bin folder of a 32-bit MinGW-w64 GCC (default: MSYS2's C:\\msys64\\mingw32\\bin)
+
+The defaults are written into os.environ, so the kit's tools started as programs from here
+(gamehost.py, mute_game.ps1 ...) use the same settings. The older names SN_WORKDIR, SN_BASE_EXE,
+SN_PRISTINE, SN_TEST_ENV, SN_TEST_LOCK, SN_SAVE_DIR and SN_SETTLE still work for now, with a
+one-line note; the PR2_ name wins when both are set.
+
+    python tools/sn_paths.py      prints the kit and every setting, where it comes from and whether it exists
 """
 import os
-import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 MOD = Path(__file__).resolve().parents[1]          # the mod's folder
-WORKSPACE = MOD.parent                             # the folder the defaults are relative to
+WORKSPACE = MOD.parent                             # the folder the workspace defaults are relative to
 
 
 def main_workspace(ws: Path) -> Path:
-    """In a git worktree the reverse-engineering folders live next to the main checkout."""
+    """In a git worktree the reverse-engineering folders and the kit live next to the main checkout."""
     if (ws / "reverse-engineering").is_dir():
         return ws
     try:
@@ -39,58 +58,95 @@ def main_workspace(ws: Path) -> Path:
 
 WORKSPACE = main_workspace(WORKSPACE)
 
-
-def setting(var: str, default: Path) -> Path:
-    v = os.environ.get(var)
-    return Path(v).expanduser() if v else default
-
-
-def documents() -> Path:
-    """The user's Documents folder as Windows knows it (it may be redirected to another folder)."""
-    try:
-        import ctypes
-        from ctypes import wintypes
-
-        class GUID(ctypes.Structure):
-            _fields_ = [("a", wintypes.DWORD), ("b", wintypes.WORD), ("c", wintypes.WORD), ("d", ctypes.c_ubyte * 8)]
-        fid = GUID(0xFDD39AD0, 0x238F, 0x46AF, (ctypes.c_ubyte * 8)(0xAD, 0xB4, 0x6C, 0x85, 0x48, 0x03, 0x69, 0xC7))
-        out = ctypes.c_wchar_p()
-        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(fid), 0, None, ctypes.byref(out)) == 0:
-            try:
-                return Path(out.value)
-            finally:
-                ctypes.windll.ole32.CoTaskMemFree(out)
-    except (AttributeError, OSError):
-        pass
-    return Path.home() / "Documents"
+ALIASES = {"SN_WORKDIR": "PR2_WORKDIR", "SN_BASE_EXE": "PR2_BASE_EXE", "SN_PRISTINE": "PR2_PRISTINE",
+           "SN_TEST_ENV": "PR2_TEST_ENV", "SN_TEST_LOCK": "PR2_TEST_LOCK", "SN_SAVE_DIR": "PR2_SAVE_DIR",
+           "SN_SETTLE": "PR2_SETTLE"}
+SOURCE = {}                                        # setting -> where its value came from (for main())
 
 
-WORKDIR = setting("SN_WORKDIR", WORKSPACE / "reverse-engineering" / "_workdir")
-BASE_EXE = setting("SN_BASE_EXE", WORKSPACE / "reverse-engineering" / "_re" / "PR2.exe.unpacked.exe")
-PRISTINE = setting("SN_PRISTINE", WORKSPACE / "original-game" / "original")
-TEST_ENV = setting("SN_TEST_ENV", Path.home() / "PR2-nation-env")
-TEST_LOCK = setting("SN_TEST_LOCK", Path.home() / "PR2-nation-env.lock")
-SAVE_DIR = setting("SN_SAVE_DIR", documents() / "Ascaron Entertainment" / "Port Royale 2" / "Save")
-MINGW32_BIN = setting("MINGW32_BIN", Path(r"C:\msys64\mingw32\bin"))
+def _workspace_default(path: Path):
+    """The workspace layout's default, only where that workspace is (a plain clone gets the kit's)."""
+    return path if path.exists() else None
 
 
-def gcc() -> Path:
-    """A 32-bit MinGW gcc.exe: MINGW32_BIN, else gcc on PATH (which must be an i686 compiler)."""
-    if (MINGW32_BIN / "gcc.exe").exists():
-        return MINGW32_BIN / "gcc.exe"
-    g = shutil.which("gcc")
-    if g:
-        return Path(g)
-    raise SystemExit("no gcc found: install MSYS2 and run `pacman -S mingw-w64-i686-gcc`, "
-                     "or set MINGW32_BIN to the folder that holds a 32-bit gcc.exe")
+def _defaults() -> dict:
+    re_ = WORKSPACE / "reverse-engineering"
+    return {
+        "PR2_WORKDIR": _workspace_default(re_ / "_workdir"),
+        "PR2_BASE_EXE": _workspace_default(re_ / "_re" / "PR2.exe.unpacked.exe"),
+        "PR2_PRISTINE": _workspace_default(WORKSPACE / "original-game" / "original"),
+        "PR2_TEST_ENV": Path.home() / "PR2-nation-env",
+        "PR2_BUILD": MOD / "_build",
+        "PR2_BACKUP_DIR": MOD / "_backup",
+    }
+
+
+def _apply_settings():
+    for old, new in ALIASES.items():
+        if os.environ.get(old):
+            if os.environ.get(new):
+                if os.environ[new] != os.environ[old]:
+                    print(f"note: {old} is ignored, {new} is set (the old SN_ names are deprecated)", file=sys.stderr)
+            else:
+                os.environ[new] = os.environ[old]
+                SOURCE[new] = f"{old} (deprecated)"
+                print(f"note: {old} is deprecated, set {new} instead (same meaning)", file=sys.stderr)
+    for var, path in _defaults().items():
+        if os.environ.get(var):
+            SOURCE.setdefault(var, "env")
+        elif path is not None:
+            os.environ[var] = str(path)
+            SOURCE[var] = "mod default"
+
+
+def find_kit() -> Path:
+    """The modding kit's checkout: PR2_KIT, else pr2-modkit next to this repository or the workspace."""
+    v = os.environ.get("PR2_KIT")
+    if v:
+        kit = Path(v).expanduser()
+        if not (kit / "tools" / "kit_paths.py").exists():
+            raise SystemExit(f"PR2_KIT={kit} is not a checkout of the modding kit (no tools/kit_paths.py in it)")
+        SOURCE["PR2_KIT"] = "env"
+        return kit.resolve()
+    for kit in (MOD.parent / "pr2-modkit", WORKSPACE / "pr2-modkit"):
+        if (kit / "tools" / "kit_paths.py").exists():
+            SOURCE["PR2_KIT"] = "next to the repository"
+            return kit.resolve()
+    raise SystemExit(
+        "the modding kit was not found. Sovereign Nations' tools use the kit's test and build tools:\n"
+        f"  git clone https://github.com/dariooo512/pr2-modkit {MOD.parent / 'pr2-modkit'}\n"
+        "or, for a checkout somewhere else, set PR2_KIT to its folder.")
+
+
+_apply_settings()
+KIT = find_kit()
+os.environ["PR2_KIT"] = str(KIT)
+KIT_TOOLS = KIT / "tools"
+for _d in reversed([KIT_TOOLS, KIT_TOOLS / "test", KIT_TOOLS / "exe", KIT_TOOLS / "files"]):
+    if str(_d) not in sys.path:
+        sys.path.insert(1 if sys.path else 0, str(_d))   # after the running script's own folder
+
+import kit_paths  # noqa: E402  (the kit's settings, read from os.environ set above)
+
+WORKDIR = kit_paths.WORKDIR
+BASE_EXE = kit_paths.BASE_EXE
+PRISTINE = kit_paths.PRISTINE
+TEST_ENV = kit_paths.TEST_ENV
+TEST_LOCK = kit_paths.TEST_LOCK
+SAVE_DIR = kit_paths.SAVE_DIR
+BUILD = kit_paths.BUILD
+BACKUP_DIR = kit_paths.BACKUP_DIR
+MINGW32_BIN = kit_paths.MINGW32_BIN
+gcc = kit_paths.gcc
 
 
 def main():
-    for var, p in [("SN_WORKDIR", WORKDIR), ("SN_BASE_EXE", BASE_EXE), ("SN_PRISTINE", PRISTINE),
-                   ("SN_TEST_ENV", TEST_ENV), ("SN_TEST_LOCK", TEST_LOCK), ("SN_SAVE_DIR", SAVE_DIR),
-                   ("MINGW32_BIN", MINGW32_BIN)]:
-        src = "env" if os.environ.get(var) else "default"
-        print(f"{var:<13} {src:<8} {'exists' if p.exists() else 'missing':<8} {p}")
+    print(f"{'PR2_KIT':<15} {SOURCE.get('PR2_KIT', ''):<22} {'exists':<8} {KIT}")
+    for var, p in [("PR2_WORKDIR", WORKDIR), ("PR2_BASE_EXE", BASE_EXE), ("PR2_PRISTINE", PRISTINE),
+                   ("PR2_TEST_ENV", TEST_ENV), ("PR2_TEST_LOCK", TEST_LOCK), ("PR2_SAVE_DIR", SAVE_DIR),
+                   ("PR2_BUILD", BUILD), ("PR2_BACKUP_DIR", BACKUP_DIR), ("MINGW32_BIN", MINGW32_BIN)]:
+        src = SOURCE.get(var) or ("env" if os.environ.get(var) else "kit default")
+        print(f"{var:<15} {src:<22} {'exists' if p.exists() else 'missing':<8} {p}")
 
 
 if __name__ == "__main__":
